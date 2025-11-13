@@ -1,6 +1,6 @@
 """Constants for the Haptique IR/RF hub integration."""
 
-DOMAIN = "haptique_gateway"
+DOMAIN = "haptique_ir_rf_hub"
 
 # Defaults
 DEFAULT_NAME = "Haptique IR/RF hub"
