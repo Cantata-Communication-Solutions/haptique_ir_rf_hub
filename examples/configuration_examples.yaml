@@ -1,0 +1,311 @@
+# Example Home Assistant Configuration for Haptique Gateway
+# Place these examples in your configuration.yaml or split them into separate files
+
+# ============================================
+# EXAMPLE 1: Simple Button Card
+# ============================================
+# Add to Lovelace UI → Edit Dashboard → Raw Configuration
+# Or use the UI to create button cards
+
+# Single button example
+type: button
+tap_action:
+  action: call-service
+  service: button.press
+  target:
+    entity_id: button.rf_tv_power
+name: TV Power
+icon: mdi:television
+
+# ============================================
+# EXAMPLE 2: Multiple Buttons Grid
+# ============================================
+type: grid
+columns: 3
+cards:
+  - type: button
+    entity: button.rf_tv_power
+    name: TV
+    icon: mdi:television
+  - type: button
+    entity: button.rf_fan_high
+    name: Fan High
+    icon: mdi:fan
+  - type: button
+    entity: button.ir_ac_cool
+    name: AC Cool
+    icon: mdi:air-conditioner
+  - type: button
+    entity: button.rf_lights_on
+    name Lights On
+    icon: mdi:lightbulb
+
+# ============================================
+# EXAMPLE 3: Automation - Time Based
+# ============================================
+automation:
+  - alias: "Morning Routine - Turn on devices"
+    description: "Turn on TV and lights at 7 AM"
+    trigger:
+      - platform: time
+        at: "07:00:00"
+    action:
+      - service: haptique_gateway.send_rf_saved
+        data:
+          name: "TV_Power"
+      - delay:
+          seconds: 2
+      - service: haptique_gateway.send_rf_saved
+        data:
+          name: "Lights_On"
+
+# ============================================
+# EXAMPLE 4: Automation - Motion Sensor
+# ============================================
+automation:
+  - alias: "Turn on fan when hot"
+    description: "Turn on fan when temperature exceeds 26°C"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.living_room_temperature
+        above: 26
+    action:
+      - service: haptique_gateway.send_rf_saved
+        data:
+          name: "Fan_High"
+
+# ============================================
+# EXAMPLE 5: Script - Movie Mode
+# ============================================
+script:
+  movie_mode:
+    alias: "Activate Movie Mode"
+    icon: mdi:movie
+    sequence:
+      # Turn on TV
+      - service: haptique_gateway.send_rf_saved
+        data:
+          name: "TV_Power"
+      - delay:
+          seconds: 2
+      
+      # Turn on soundbar
+      - service: haptique_gateway.send_ir_saved
+        data:
+          name: "Soundbar_Power"
+      - delay:
+          seconds: 1
+      
+      # Set soundbar to movie mode
+      - service: haptique_gateway.send_ir_saved
+        data:
+          name: "Soundbar_Movie_Mode"
+      
+      # Dim lights
+      - service: light.turn_on
+        target:
+          entity_id: light.living_room
+        data:
+          brightness: 30
+      
+      # Close blinds (if you have RF blinds)
+      - service: haptique_gateway.send_rf_saved
+        data:
+          name: "Blinds_Close"
+
+# ============================================
+# EXAMPLE 6: Script - Learning Mode
+# ============================================
+script:
+  learn_new_rf_command:
+    alias: "Learn New RF Command"
+    icon: mdi:plus-circle
+    fields:
+      command_name:
+        description: "Name for the new command"
+        example: "Bedroom_Fan_Speed_2"
+    sequence:
+      # Wait for user to press remote button
+      - delay:
+          seconds: 5
+      
+      # Save the received command
+      - service: haptique_gateway.save_rf_last
+        data:
+          name: "{{ command_name }}"
+      
+      # Notify user
+      - service: notify.mobile_app
+        data:
+          message: "Command '{{ command_name }}' saved successfully!"
+
+# ============================================
+# EXAMPLE 7: Input Select for Multiple Commands
+# ============================================
+input_select:
+  fan_speed:
+    name: Fan Speed
+    options:
+      - "Off"
+      - "Low"
+      - "Medium"
+      - "High"
+    icon: mdi:fan
+
+automation:
+  - alias: "Fan Speed Control"
+    trigger:
+      - platform: state
+        entity_id: input_select.fan_speed
+    action:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: input_select.fan_speed
+                state: "Off"
+            sequence:
+              - service: haptique_gateway.send_rf_saved
+                data:
+                  name: "Fan_Off"
+          
+          - conditions:
+              - condition: state
+                entity_id: input_select.fan_speed
+                state: "Low"
+            sequence:
+              - service: haptique_gateway.send_rf_saved
+                data:
+                  name: "Fan_Low"
+          
+          - conditions:
+              - condition: state
+                entity_id: input_select.fan_speed
+                state: "Medium"
+            sequence:
+              - service: haptique_gateway.send_rf_saved
+                data:
+                  name: "Fan_Medium"
+          
+          - conditions:
+              - condition: state
+                entity_id: input_select.fan_speed
+                state: "High"
+            sequence:
+              - service: haptique_gateway.send_rf_saved
+                data:
+                  name: "Fan_High"
+
+# ============================================
+# EXAMPLE 8: Send Raw RF Code
+# ============================================
+script:
+  send_custom_rf:
+    alias: "Send Custom RF Code"
+    icon: mdi:radio-tower
+    sequence:
+      - service: haptique_gateway.send_rf_code
+        data:
+          code: 123456
+          bits: 24
+          protocol: 1
+          repeat: 8
+
+# ============================================
+# EXAMPLE 9: Send Raw IR Code
+# ============================================
+script:
+  send_custom_ir:
+    alias: "Send Custom IR Code"
+    icon: mdi:remote
+    sequence:
+      - service: haptique_gateway.send_ir_code
+        data:
+          frequency: 38000
+          duty: 33
+          raw_data:
+            - 9000
+            - 4500
+            - 560
+            - 560
+            - 560
+            - 1690
+            - 560
+            - 560
+
+# ============================================
+# EXAMPLE 10: Conditional Control
+# ============================================
+automation:
+  - alias: "Smart AC Control"
+    description: "Turn AC on/off based on temperature and presence"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.bedroom_temperature
+        above: 28
+    condition:
+      - condition: state
+        entity_id: binary_sensor.bedroom_motion
+        state: "on"
+    action:
+      - service: haptique_gateway.send_ir_saved
+        data:
+          name: "AC_Cool_24"
+
+# ============================================
+# EXAMPLE 11: Device Status Dashboard
+# ============================================
+# Lovelace card showing all device information
+type: entities
+title: Haptique Gateway Status
+entities:
+  - entity: sensor.haptique_gateway_wifi_status
+    name: WiFi
+  - entity: sensor.haptique_gateway_ip_address
+    name: IP Address
+  - entity: sensor.haptique_gateway_firmware_version
+    name: Firmware
+  - entity: sensor.haptique_gateway_rf_received_count
+    name: RF Signals Received
+  - entity: sensor.haptique_gateway_hostname
+    name: Hostname
+  - entity: switch.haptique_gateway_access_point
+    name: Access Point
+
+# ============================================
+# EXAMPLE 12: Voice Control with Assist
+# ============================================
+# Use these names for voice control:
+# "Turn on TV" → calls button.rf_tv_power
+# "Set fan to high" → calls button.rf_fan_high
+# "Activate movie mode" → calls script.movie_mode
+
+# ============================================
+# EXAMPLE 13: Notification When Command Saved
+# ============================================
+automation:
+  - alias: "Notify on Command Save"
+    trigger:
+      - platform: event
+        event_type: call_service
+        event_data:
+          domain: haptique_gateway
+          service: save_rf_last
+    action:
+      - service: notify.persistent_notification
+        data:
+          title: "RF Command Saved"
+          message: "New RF command saved successfully"
+
+# ============================================
+# EXAMPLE 14: Delete Old Commands
+# ============================================
+script:
+  cleanup_old_commands:
+    alias: "Delete Old Commands"
+    sequence:
+      - service: haptique_gateway.delete_rf_command
+        data:
+          name: "Old_Remote_1"
+      - service: haptique_gateway.delete_ir_command
+        data:
+          name: "Broken_Remote"

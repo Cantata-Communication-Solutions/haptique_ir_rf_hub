@@ -1,0 +1,203 @@
+# ========================================
+# MOST RELIABLE METHOD - Using Automations
+# ========================================
+# This method uses automations instead of scripts
+# Automations are more stable and won't hang!
+
+# Copy ALL of this to your configuration.yaml
+# ========================================
+
+# Text Input Boxes
+input_text:
+  rf_command_name:
+    name: "RF Command Name"
+    initial: ""
+    min: 1
+    max: 32
+    icon: mdi:radio-tower
+  
+  ir_command_name:
+    name: "IR Command Name"
+    initial: ""
+    min: 1
+    max: 32
+    icon: mdi:remote
+
+# Toggle Buttons (these trigger the save)
+input_boolean:
+  save_rf_trigger:
+    name: "Save RF Trigger"
+    icon: mdi:content-save
+    initial: off
+  
+  save_ir_trigger:
+    name: "Save IR Trigger"
+    icon: mdi:content-save
+    initial: off
+
+# Automations (these do the actual saving)
+automation:
+  # Save RF Command Automation
+  - id: save_rf_command_auto
+    alias: "Save RF Command"
+    description: "Save last received RF command with custom name"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.save_rf_trigger
+        to: 'on'
+    condition:
+      - condition: template
+        value_template: "{{ states('input_text.rf_command_name') not in ['', 'unknown', 'unavailable'] }}"
+    action:
+      - service: haptique_gateway.save_rf_last
+        data:
+          name: "{{ states('input_text.rf_command_name') }}"
+      
+      - delay:
+          milliseconds: 500
+      
+      - service: persistent_notification.create
+        data:
+          title: "✅ RF Command Saved"
+          message: "Command '{{ states('input_text.rf_command_name') }}' saved! Reload integration to use it."
+      
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.rf_command_name
+        data:
+          value: ""
+      
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.save_rf_trigger
+  
+  # Save IR Command Automation
+  - id: save_ir_command_auto
+    alias: "Save IR Command"
+    description: "Save last received IR command with custom name"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.save_ir_trigger
+        to: 'on'
+    condition:
+      - condition: template
+        value_template: "{{ states('input_text.ir_command_name') not in ['', 'unknown', 'unavailable'] }}"
+    action:
+      - service: haptique_gateway.save_ir_last
+        data:
+          name: "{{ states('input_text.ir_command_name') }}"
+      
+      - delay:
+          milliseconds: 500
+      
+      - service: persistent_notification.create
+        data:
+          title: "✅ IR Command Saved"
+          message: "Command '{{ states('input_text.ir_command_name') }}' saved! Reload integration to use it."
+      
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.ir_command_name
+        data:
+          value: ""
+      
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.save_ir_trigger
+
+# ========================================
+# After adding above:
+# 1. Developer Tools → YAML → Check Configuration
+# 2. Restart Home Assistant
+# 3. Add the dashboard card below
+# ========================================
+
+
+# ========================================
+# DASHBOARD CARD - Simple Version
+# ========================================
+# Copy this to your dashboard:
+
+type: vertical-stack
+cards:
+  - type: markdown
+    content: |
+      ## 📚 Learn Commands
+      1. Point remote 2. Press button 3. Type name 4. Toggle switch
+
+  - type: entities
+    title: RF Command (433MHz)
+    entities:
+      - entity: input_text.rf_command_name
+        name: Command Name
+      - entity: input_boolean.save_rf_trigger
+        name: Save RF Command
+
+  - type: entities
+    title: IR Command (Infrared)
+    entities:
+      - entity: input_text.ir_command_name
+        name: Command Name
+      - entity: input_boolean.save_ir_trigger
+        name: Save IR Command
+
+
+# ========================================
+# DASHBOARD CARD - Button Version
+# ========================================
+# Alternative with actual buttons:
+
+type: vertical-stack
+cards:
+  - type: markdown
+    content: "## 📚 Learn Commands"
+
+  - type: entities
+    title: RF Command
+    entities:
+      - entity: input_text.rf_command_name
+
+  - type: button
+    entity: input_boolean.save_rf_trigger
+    name: Save RF Command
+    icon: mdi:content-save
+    tap_action:
+      action: toggle
+
+  - type: entities
+    title: IR Command
+    entities:
+      - entity: input_text.ir_command_name
+
+  - type: button
+    entity: input_boolean.save_ir_trigger
+    name: Save IR Command
+    icon: mdi:content-save
+    tap_action:
+      action: toggle
+
+
+# ========================================
+# HOW IT WORKS:
+# ========================================
+# 1. You type a name in the text box
+# 2. You click/toggle the button
+# 3. Automation is triggered
+# 4. Command is saved
+# 5. Notification appears
+# 6. Text box is cleared
+# 7. Button automatically turns off
+#
+# This method is MORE RELIABLE than scripts!
+# ========================================
+
+
+# ========================================
+# WHY THIS WORKS BETTER:
+# ========================================
+# - Automations don't hang like scripts can
+# - Toggle state is more reliable
+# - Automatic turn-off prevents double-clicks
+# - Easier to debug (check automation traces)
+# - Can see automation status in UI
+# ========================================

@@ -1,0 +1,190 @@
+# ========================================
+# FIXED DASHBOARD CARDS - WON'T HANG!
+# ========================================
+
+# ========================================
+# OPTION 1: Using Scripts (Recommended)
+# ========================================
+type: vertical-stack
+cards:
+  - type: markdown
+    content: |
+      ## 📚 Learn Commands
+      1. Point remote → Gateway
+      2. Press button
+      3. Type name below
+      4. Click Save
+
+  - type: entities
+    title: RF Command (433MHz)
+    entities:
+      - entity: input_text.rf_command_name
+        name: Command Name
+
+  - type: button
+    name: Save RF Command
+    icon: mdi:content-save
+    tap_action:
+      action: call-service
+      service: script.save_last_rf_command
+      data: {}
+
+  - type: entities
+    title: IR Command (Infrared)
+    entities:
+      - entity: input_text.ir_command_name
+        name: Command Name
+
+  - type: button
+    name: Save IR Command
+    icon: mdi:content-save
+    tap_action:
+      action: call-service
+      service: script.save_last_ir_command
+      data: {}
+
+
+# ========================================
+# OPTION 2: Direct Service Calls (No Scripts)
+# ========================================
+# Use this if scripts still cause issues
+
+type: vertical-stack
+cards:
+  - type: markdown
+    content: |
+      ## 📚 Learn Commands
+      Enter name and click Save
+
+  - type: entities
+    title: RF Command
+    entities:
+      - entity: input_text.rf_command_name
+
+  - type: button
+    name: Save RF Command
+    icon: mdi:content-save
+    tap_action:
+      action: call-service
+      service: haptique_gateway.save_rf_last
+      data:
+        name: "{{ states('input_text.rf_command_name') }}"
+    hold_action:
+      action: none
+
+  - type: entities
+    title: IR Command
+    entities:
+      - entity: input_text.ir_command_name
+
+  - type: button
+    name: Save IR Command
+    icon: mdi:content-save
+    tap_action:
+      action: call-service
+      service: haptique_gateway.save_ir_last
+      data:
+        name: "{{ states('input_text.ir_command_name') }}"
+    hold_action:
+      action: none
+
+
+# ========================================
+# OPTION 3: Simple Entities Card (Easiest)
+# ========================================
+# This is the simplest and most reliable
+
+type: entities
+title: Learn Commands
+entities:
+  - type: section
+    label: RF Command (433MHz)
+  - entity: input_text.rf_command_name
+    name: Command Name
+  - type: button
+    name: Save RF Command
+    icon: mdi:content-save
+    action_name: Save
+    tap_action:
+      action: call-service
+      service: script.save_last_rf_command
+  
+  - type: section
+    label: IR Command (Infrared)
+  - entity: input_text.ir_command_name
+    name: Command Name
+  - type: button
+    name: Save IR Command
+    icon: mdi:content-save
+    action_name: Save
+    tap_action:
+      action: call-service
+      service: script.save_last_ir_command
+
+
+# ========================================
+# OPTION 4: With Status Indicators
+# ========================================
+type: vertical-stack
+cards:
+  - type: markdown
+    content: "## 📚 Learn Remote Commands"
+
+  - type: glance
+    entities:
+      - entity: sensor.haptique_gateway_rf_received_count
+        name: RF Received
+      - entity: sensor.haptique_gateway_wifi_status
+        name: Status
+
+  - type: entities
+    entities:
+      - entity: input_text.rf_command_name
+        name: RF Command Name
+      - type: button
+        name: Save RF
+        icon: mdi:content-save
+        action_name: Save
+        tap_action:
+          action: call-service
+          service: script.save_last_rf_command
+
+  - type: entities
+    entities:
+      - entity: input_text.ir_command_name
+        name: IR Command Name
+      - type: button
+        name: Save IR
+        icon: mdi:content-save
+        action_name: Save
+        tap_action:
+          action: call-service
+          service: script.save_last_ir_command
+
+
+# ========================================
+# TROUBLESHOOTING TIPS:
+# ========================================
+# If buttons still hang:
+#
+# 1. Check Home Assistant logs:
+#    Settings → System → Logs
+#
+# 2. Test script manually:
+#    Developer Tools → Services
+#    Service: script.save_last_rf_command
+#    Click "Call Service"
+#
+# 3. Test service directly:
+#    Developer Tools → Services
+#    Service: haptique_gateway.save_rf_last
+#    Service data: {"name": "test"}
+#    Click "Call Service"
+#
+# 4. Verify input_text exists:
+#    Settings → Devices → Helpers
+#    Look for "RF Command Name" and "IR Command Name"
+#
+# 5. Check integration is loaded:
+#    Settings → Devices & Services
+#    Find "Haptique IR/RF Gateway"

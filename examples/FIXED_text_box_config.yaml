@@ -1,0 +1,77 @@
+# ========================================
+# FIXED VERSION - NO HANGING!
+# ========================================
+# Copy this to your configuration.yaml
+
+# Input Text Helpers
+input_text:
+  rf_command_name:
+    name: "RF Command Name"
+    initial: ""
+    min: 1
+    max: 32
+    icon: mdi:radio-tower
+  
+  ir_command_name:
+    name: "IR Command Name"
+    initial: ""
+    min: 1
+    max: 32
+    icon: mdi:remote
+
+# Fixed Scripts - Won't Hang!
+script:
+  save_last_rf_command:
+    alias: "Save Last RF Command"
+    icon: mdi:content-save
+    mode: single
+    sequence:
+      - variables:
+          command_name: "{{ states('input_text.rf_command_name') }}"
+      - condition: template
+        value_template: "{{ command_name != '' and command_name != 'unknown' }}"
+      - service: haptique_gateway.save_rf_last
+        data:
+          name: "{{ command_name }}"
+      - delay:
+          milliseconds: 500
+      - service: persistent_notification.create
+        data:
+          title: "RF Command Saved"
+          message: "Command '{{ command_name }}' saved successfully!"
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.rf_command_name
+        data:
+          value: ""
+  
+  save_last_ir_command:
+    alias: "Save Last IR Command"
+    icon: mdi:content-save
+    mode: single
+    sequence:
+      - variables:
+          command_name: "{{ states('input_text.ir_command_name') }}"
+      - condition: template
+        value_template: "{{ command_name != '' and command_name != 'unknown' }}"
+      - service: haptique_gateway.save_ir_last
+        data:
+          name: "{{ command_name }}"
+      - delay:
+          milliseconds: 500
+      - service: persistent_notification.create
+        data:
+          title: "IR Command Saved"
+          message: "Command '{{ command_name }}' saved successfully!"
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.ir_command_name
+        data:
+          value: ""
+
+# ========================================
+# After adding:
+# 1. Check Configuration (Developer Tools → YAML)
+# 2. Restart Home Assistant
+# 3. Test the buttons!
+# ========================================
