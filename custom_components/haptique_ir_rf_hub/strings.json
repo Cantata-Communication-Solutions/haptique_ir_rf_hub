@@ -1,0 +1,22 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Haptique IR/RF hub",
+        "description": "Enter the IP address or hostname of your Haptique Gateway device and the authentication token.",
+        "data": {
+          "host": "Host (IP or hostname)",
+          "token": "Authentication Token (get from /api/token)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the device. Check the host address and authentication token.",
+      "invalid_auth": "Invalid authentication token",
+      "unknown": "Unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "This device is already configured"
+    }
+  }
+}

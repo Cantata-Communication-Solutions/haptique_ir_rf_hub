@@ -1,0 +1,148 @@
+send_rf_code:
+  name: Send RF Code
+  description: Send an RF 433MHz code
+  fields:
+    code:
+      name: Code
+      description: RF code to send
+      required: true
+      example: 123456
+      selector:
+        number:
+          min: 0
+          max: 4294967295
+          mode: box
+    bits:
+      name: Bits
+      description: Number of bits (1-64)
+      default: 24
+      example: 24
+      selector:
+        number:
+          min: 1
+          max: 64
+          mode: box
+    protocol:
+      name: Protocol
+      description: RF protocol (1-7)
+      default: 1
+      example: 1
+      selector:
+        number:
+          min: 1
+          max: 7
+          mode: box
+    repeat:
+      name: Repeat
+      description: Number of repeats (1-20)
+      default: 8
+      example: 8
+      selector:
+        number:
+          min: 1
+          max: 20
+          mode: box
+
+send_rf_saved:
+  name: Send Saved RF Command
+  description: Send a saved RF command by name
+  fields:
+    name:
+      name: Command Name
+      description: Name of the saved RF command
+      required: true
+      example: "TV_Power"
+      selector:
+        text:
+
+send_ir_code:
+  name: Send IR Code
+  description: Send raw IR code
+  fields:
+    frequency:
+      name: Frequency
+      description: Carrier frequency in Hz
+      default: 38000
+      example: 38000
+      selector:
+        number:
+          min: 1000
+          max: 100000
+          mode: box
+    duty:
+      name: Duty Cycle
+      description: PWM duty cycle percentage
+      default: 33
+      example: 33
+      selector:
+        number:
+          min: 1
+          max: 100
+          mode: box
+    raw_data:
+      name: Raw Data
+      description: Array of pulse timings in microseconds
+      required: true
+      example: [9000, 4500, 560, 560, 560, 1690]
+      selector:
+        object:
+
+send_ir_saved:
+  name: Send Saved IR Command
+  description: Send a saved IR command by name
+  fields:
+    name:
+      name: Command Name
+      description: Name of the saved IR command
+      required: true
+      example: "TV_Volume_Up"
+      selector:
+        text:
+
+save_rf_last:
+  name: Save Last RF Command
+  description: Save the last received RF command with a name
+  fields:
+    name:
+      name: Command Name
+      description: Name to save the command as
+      required: true
+      example: "Living_Room_Fan"
+      selector:
+        text:
+
+save_ir_last:
+  name: Save Last IR Command
+  description: Save the last received IR command with a name
+  fields:
+    name:
+      name: Command Name
+      description: Name to save the command as
+      required: true
+      example: "Bedroom_AC_Cool"
+      selector:
+        text:
+
+delete_rf_command:
+  name: Delete RF Command
+  description: Delete a saved RF command
+  fields:
+    name:
+      name: Command Name
+      description: Name of the command to delete
+      required: true
+      example: "Old_Remote"
+      selector:
+        text:
+
+delete_ir_command:
+  name: Delete IR Command
+  description: Delete a saved IR command
+  fields:
+    name:
+      name: Command Name
+      description: Name of the command to delete
+      required: true
+      example: "Broken_Remote"
+      selector:
+        text:
