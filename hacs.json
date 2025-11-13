@@ -1,6 +1,6 @@
 {
   "name": "Haptique IR/RF Hub",
-  "domains": ["haptique_gateway"],
+  "domains": ["haptique_ir_rf_hub"],
   "homeassistant": ""2025.2.1",
   "render_readme": true,
   "integration_type": "hub"
