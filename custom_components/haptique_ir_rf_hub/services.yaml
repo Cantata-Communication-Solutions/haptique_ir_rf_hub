@@ -113,13 +113,18 @@ save_rf_last:
 
 save_ir_last:
   name: Save Last IR Command
-  description: Save the last received IR command with a name
+  description: Save the last received IR command with a name and frame
   fields:
     name:
       name: Command Name
       description: Name to save the command as
       required: true
-      example: "Bedroom_AC_Cool"
+      selector:
+        text:
+    frame:
+      name: Frame
+      description: IR Frame (A / B / C / D)
+      required: true
       selector:
         text:
 
