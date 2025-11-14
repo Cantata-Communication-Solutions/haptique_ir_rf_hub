@@ -25,7 +25,7 @@ This custom integration allows you to learn and replay IR and RF commands using 
 
 ### Step 1: Install HACS
 
-If you haven't already installed HACS, follow the instructions at [https://hacs.xyz/docs/setup/download](https://hacs.xyz/docs/setup/download)
+If you haven't already installed HACS, follow the instructions at [https://hacs.xyz/docs/setup/download](https://hacs.xyz/docs/use/download/prerequisites/)
 
 ### Step 2: Add Custom Repository
 
