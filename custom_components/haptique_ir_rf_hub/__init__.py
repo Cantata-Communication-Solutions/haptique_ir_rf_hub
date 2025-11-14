@@ -100,7 +100,7 @@ async def async_setup_services(hass: HomeAssistant, api) -> None:
     
     async def save_ir_last(call):
         name = call.data.get("name")
-        frame = call.data.get("frame", "B")  # default B if not provided
+        frame = call.data.get("frame", "B")  # default frame B
         await api.save_ir_command(name, frame)
 
     
@@ -247,8 +247,15 @@ class HaptiqueGatewayAPI:
         return await self._request("POST", "/api/rf/save", json={"name": name})
     
     async def save_ir_command(self, name: str, frame: str) -> dict:
-        """Save last received IR command."""
-        return await self._request("POST", "/api/ir/save", json={"name": name, "frame": frame})
+        return await self._request(
+            "POST",
+            "/api/ir/save",
+            json={
+                "name": name,
+                "frame": frame
+            }
+    )
+
     
     async def delete_rf_command(self, name: str) -> dict:
         """Delete saved RF command."""
