@@ -4,7 +4,7 @@ Control your IR (Infrared) and RF (433MHz) devices through Home Assistant with t
 
 ## 📋 Overview
 
-This custom integration allows you to learn and replay IR and RF commands using your Haptique IR/RF Hub device. Once configured, you can control your appliances, lights, fans, and other IR/RF devices directly from Home Assistant.
+This custom integration allows you to learn and replay IR and RF commands using your Haptique IR/RF Hub device. Once configured, you can control your appliances, curtain, TV, AVR and other IR/RF devices directly from Home Assistant.
 
 ## ✨ Features
 
