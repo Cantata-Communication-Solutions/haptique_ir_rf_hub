@@ -85,21 +85,25 @@ type: vertical-stack
 cards:
   - type: markdown
     content: |
-      ## 📚 Learn Commands
-      Steps:
-      1. Point remote at HUB  
-      2. Press button  
-      3. Type name  
-      4. Toggle switch  
+      ## 📚 Learn IR/RF Commands
+      **Steps:**
+      1. Point remote at Hub
+      2. Press button on remote
+      3. Type command name below
+      4. **For IR:** Select frame (A, B, C, or D)
+      5. Toggle save switch
+      
   - type: entities
-    title: RF Command (433MHz)
+    title: "🔴 RF Commands (433MHz)"
     entities:
       - input_text.rf_command_name
       - input_boolean.save_rf_trigger
+      
   - type: entities
-    title: IR Command (Infrared)
+    title: "📡 IR Commands (Infrared)"
     entities:
       - input_text.ir_command_name
+      - input_select.ir_frame          # ✅ Add frame selector
       - input_boolean.save_ir_trigger
 ```
 
@@ -117,6 +121,17 @@ input_text:
   ir_command_name:
     name: "IR Command Name"
     max: 50
+
+input_select:
+  ir_frame:
+    name: "IR Frame"
+    options:
+      - "A"
+      - "B"
+      - "C"
+      - "D"
+    initial: "B"
+    icon: mdi:format-list-bulleted
 
 input_boolean:
   save_rf_trigger:
@@ -151,8 +166,8 @@ Open your `automations.yaml` file and add these automations:
     - delay: "00:00:00.5"
     - service: persistent_notification.create
       data:
-        title: "✅ RF Saved"
-        message: "Command saved!"
+        title: "✅ RF Command Saved"
+        message: "Command '{{ states('input_text.rf_command_name') }}' saved!"
     - service: input_text.set_value
       data:
         entity_id: input_text.rf_command_name
@@ -174,12 +189,12 @@ Open your `automations.yaml` file and add these automations:
     - service: haptique_ir_rf_hub.save_ir_last
       data:
         name: "{{ states('input_text.ir_command_name') }}"
-        frame: "B"
+        frame: "{{ states('input_select.ir_frame') }}"  # ✅ Add frame parameter
     - delay: "00:00:00.5"
     - service: persistent_notification.create
       data:
-        title: "✅ IR Saved"
-        message: "Command saved!"
+        title: "✅ IR Command Saved"
+        message: "Command '{{ states('input_text.ir_command_name') }}' saved with frame {{ states('input_select.ir_frame') }}!"
     - service: input_text.set_value
       data:
         entity_id: input_text.ir_command_name
