@@ -1,6 +1,16 @@
 # Haptique IR/RF Hub - Home Assistant Integration
 
+[![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
+[![GitHub Release](https://img.shields.io/github/v/release/Cantata-Communication-Solutions/haptique_ir_rf_hub)](https://github.com/Cantata-Communication-Solutions/haptique_ir_rf_hub/releases)
+[![License](https://img.shields.io/github/license/Cantata-Communication-Solutions/haptique_ir_rf_hub)](LICENSE)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 Control your IR (Infrared) and RF (433MHz) devices through Home Assistant with the Haptique IR/RF Hub.
+
+## ⚠️ Integration Status
+
+- **Current**: Custom HACS Integration
+- **Goal**: Official Home Assistant Integration (in progress)
 
 ## 📋 Overview
 
@@ -260,6 +270,17 @@ script:
 ## 📝 Support
 
 For issues, questions, or feature requests, please open an issue on [GitHub](https://github.com/Cantata-Communication-Solutions/haptique_ir_rf_hub/issues).
+
+## 📚 Documentation
+
+- [Installation Guide](docs/installation.md)
+- [Configuration](docs/configuration.md)
+- [API Reference](docs/api-reference.md)
+- [Contributing](CONTRIBUTING.md)
+
+## 🧪 For Developers
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup.
 
 ## 📄 License
 
