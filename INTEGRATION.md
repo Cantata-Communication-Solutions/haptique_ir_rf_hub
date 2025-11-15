@@ -57,7 +57,7 @@ Send an IR command.
 
 **Example:**
 ```yaml
-service: haptique_ir_rf_hub.send_ir
+service: haptique_ir_rf_hub.send_ir_saved
 data:
   name: "tv_power"
 ```
@@ -74,7 +74,7 @@ Send an RF command.
 
 **Example:**
 ```yaml
-service: haptique_ir_rf_hub.send_rf
+service: haptique_ir_rf_hub.send_rf_saved
 data:
   name: "fan_on"
 ```
