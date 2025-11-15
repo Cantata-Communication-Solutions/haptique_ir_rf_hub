@@ -4,7 +4,7 @@ Control your IR (Infrared) and RF (433MHz) devices through Home Assistant with t
 
 ## 📋 Overview
 
-This custom integration allows you to learn and replay IR and RF commands using your Haptique IR/RF Hub device. Once configured, you can control your appliances, curtain, TV, AVR and other IR/RF devices directly from Home Assistant.
+This custom integration allows you to learn and replay IR and RF commands using your Haptique IR/RF Hub device. Once configured, you can control your appliances, lights, fans, TV, AVR, and other IR/RF devices directly from Home Assistant.
 
 ## ✨ Features
 
@@ -25,7 +25,7 @@ This custom integration allows you to learn and replay IR and RF commands using 
 
 ### Step 1: Install HACS
 
-If you haven't already installed HACS, follow the instructions at [https://hacs.xyz/docs/setup/download](https://hacs.xyz/docs/use/download/prerequisites/)
+If you haven't already installed HACS, follow the instructions at [https://hacs.xyz/docs/setup/download](https://hacs.xyz/docs/setup/download)
 
 ### Step 2: Add Custom Repository
 
@@ -95,6 +95,8 @@ cards:
 
 #### 2. Add Configuration
 
+**Step 2a: Update configuration.yaml**
+
 Add the following to your `configuration.yaml` file:
 
 ```yaml
@@ -114,62 +116,73 @@ input_boolean:
     name: "Save IR Trigger"
     icon: mdi:content-save
 
-automation:
-  - alias: "Save RF Command"
-    mode: single
-    trigger:
-      - platform: state
-        entity_id: input_boolean.save_rf_trigger
-        to: "on"
-    condition:
-      - condition: template
-        value_template: "{{ states('input_text.rf_command_name') | length > 0 }}"
-    action:
-      - service: haptique_ir_rf_hub.save_rf_last
-        data:
-          name: "{{ states('input_text.rf_command_name') }}"
-      - delay: "00:00:00.5"
-      - service: persistent_notification.create
-        data:
-          title: "✅ RF Saved"
-          message: "Command saved!"
-      - service: input_text.set_value
-        data:
-          entity_id: input_text.rf_command_name
-          value: ""
-      - service: input_boolean.turn_off
-        target:
-          entity_id: input_boolean.save_rf_trigger
-
-  - alias: "Save IR Command"
-    mode: single
-    trigger:
-      - platform: state
-        entity_id: input_boolean.save_ir_trigger
-        to: "on"
-    condition:
-      - condition: template
-        value_template: "{{ states('input_text.ir_command_name') | length > 0 }}"
-    action:
-      - service: haptique_ir_rf_hub.save_ir_last
-        data:
-          name: "{{ states('input_text.ir_command_name') }}"
-          frame: "B"
-      - delay: "00:00:00.5"
-      - service: persistent_notification.create
-        data:
-          title: "✅ IR Saved"
-          message: "Command saved!"
-      - service: input_text.set_value
-        data:
-          entity_id: input_text.ir_command_name
-          value: ""
-      - service: input_boolean.turn_off
-        target:
-          entity_id: input_boolean.save_ir_trigger
+# Make sure this line exists to use automations.yaml file
+automation: !include automations.yaml
 ```
 
-**Important**: After adding this configuration, restart Home Assistant for the changes to take effect.
+**Step 2b: Add to automations.yaml**
+
+Open your `automations.yaml` file and add these automations:
+
+```yaml
+- alias: "Save RF Command"
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: input_boolean.save_rf_trigger
+      to: "on"
+  condition:
+    - condition: template
+      value_template: "{{ states('input_text.rf_command_name') | length > 0 }}"
+  action:
+    - service: haptique_ir_rf_hub.save_rf_last
+      data:
+        name: "{{ states('input_text.rf_command_name') }}"
+    - delay: "00:00:00.5"
+    - service: persistent_notification.create
+      data:
+        title: "✅ RF Saved"
+        message: "Command saved!"
+    - service: input_text.set_value
+      data:
+        entity_id: input_text.rf_command_name
+        value: ""
+    - service: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.save_rf_trigger
+
+- alias: "Save IR Command"
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: input_boolean.save_ir_trigger
+      to: "on"
+  condition:
+    - condition: template
+      value_template: "{{ states('input_text.ir_command_name') | length > 0 }}"
+  action:
+    - service: haptique_ir_rf_hub.save_ir_last
+      data:
+        name: "{{ states('input_text.ir_command_name') }}"
+        frame: "B"
+    - delay: "00:00:00.5"
+    - service: persistent_notification.create
+      data:
+        title: "✅ IR Saved"
+        message: "Command saved!"
+    - service: input_text.set_value
+      data:
+        entity_id: input_text.ir_command_name
+        value: ""
+    - service: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.save_ir_trigger
+```
+
+**Important Notes:**
+- Using `automations.yaml` keeps the GUI automation editor working
+- If `automations.yaml` already has content, add these automations to the existing list
+- After adding this configuration, restart Home Assistant (Settings > System > Restart)
 
 ### How to Learn Commands
 
@@ -250,7 +263,7 @@ For issues, questions, or feature requests, please open an issue on [GitHub](htt
 
 ## 📄 License
 
-This project is licensed under the MIT License - [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 🙏 Credits
 
