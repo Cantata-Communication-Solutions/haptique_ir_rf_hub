@@ -1,0 +1,2539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Haptique ESP32 IR/RF Gateway</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1419 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #e5e7eb;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(19, 24, 41, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            border: 1px solid rgba(0, 212, 255, 0.1);
+            position: relative;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a1f3a 0%, #2d1b69 100%);
+            color: white;
+            padding: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(0,212,255,0.05)" stroke-width="0.5"/></svg>');
+            opacity: 0.1;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo {
+            width: 120px;
+            height: 60px;
+            background: white;
+            border-radius: 12px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .logo img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .header-text h1 {
+            font-size: 2em;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .header-text p {
+            font-size: 0.9em;
+            opacity: 0.8;
+            color: #00d4ff;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .connection-status {
+            display: inline-block;
+            padding: 12px 24px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 25px;
+            font-size: 0.9em;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .buy-rs90-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 1.1em;
+            border: 2px solid rgba(16, 185, 129, 0.5);
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .buy-rs90-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .buy-rs90-btn:hover::before {
+            left: 100%;
+        }
+
+        .buy-rs90-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(16, 185, 129, 0.6);
+            border-color: #10b981;
+        }
+
+        .buy-rs90-btn img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            filter: brightness(1.2);
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-connected { 
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+        }
+        
+        .status-disconnected { 
+            background: #ef4444;
+            box-shadow: 0 0 10px #ef4444;
+        }
+
+        /* FIXED ALERT CONTAINER */
+        .alert-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            width: 90%;
+            max-width: 600px;
+            pointer-events: none;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: rgba(10, 14, 39, 0.8);
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+            overflow-x: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-tab {
+            padding: 15px 20px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            font-size: 0.95em;
+            transition: all 0.3s;
+            white-space: nowrap;
+            position: relative;
+            color: #9ca3af;
+            font-weight: 500;
+        }
+
+        .nav-tab:hover {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+        }
+
+        .nav-tab.active {
+            background: rgba(0, 212, 255, 0.15);
+            color: #00d4ff;
+            font-weight: 600;
+        }
+
+        .nav-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+            animation: fadeIn 0.3s;
+            background: rgba(26, 31, 58, 0.3);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #00d4ff;
+            font-size: 0.95em;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+            background: rgba(0, 0, 0, 0.3);
+            color: #e5e7eb;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+            color: white;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(108, 117, 125, 0.3);
+            color: #e5e7eb;
+            border: 1px solid rgba(156, 163, 175, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(108, 117, 125, 0.5);
+            border-color: #9ca3af;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #1a1f3a;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-warning:hover {
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            display: none;
+            border-left: 4px solid;
+            backdrop-filter: blur(10px);
+            pointer-events: all;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            animation: slideInDown 0.4s ease-out;
+        }
+
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.95);
+            color: white;
+            border-color: #10b981;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.95);
+            color: white;
+            border-color: #ef4444;
+        }
+
+        .alert-info {
+            background: rgba(0, 212, 255, 0.95);
+            color: white;
+            border-color: #00d4ff;
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.95);
+            color: #1a1f3a;
+            border-color: #f59e0b;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.1);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .wifi-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .wifi-item {
+            padding: 15px;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .wifi-item:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .wifi-item:last-child {
+            border-bottom: none;
+        }
+
+        .wifi-item.selected {
+            background: rgba(0, 212, 255, 0.2);
+            border-left: 4px solid #00d4ff;
+        }
+
+        .ir-capture-display, .rf-capture-display {
+            background: rgba(0, 0, 0, 0.5);
+            color: #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .code-display {
+            background: rgba(0, 0, 0, 0.5);
+            color: #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 15px 0;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .frame-tabs {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+
+        .frame-tab {
+            padding: 8px 16px;
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            color: #9ca3af;
+        }
+
+        .frame-tab:hover {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+        }
+
+        .frame-tab.active {
+            background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+            color: white;
+            border-color: #00d4ff;
+        }
+
+        .frame-content {
+            display: none;
+        }
+
+        .frame-content.active {
+            display: block;
+        }
+
+        .saved-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .saved-item:hover {
+            border-color: #00d4ff;
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2);
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .saved-item-info {
+            flex: 1;
+        }
+
+        .saved-item-name {
+            font-weight: 700;
+            font-size: 1.1em;
+            color: #00d4ff;
+            margin-bottom: 5px;
+        }
+
+        .saved-item-details {
+            font-size: 0.9em;
+            color: #9ca3af;
+        }
+
+        .saved-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .rf-code-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .rf-code-item:hover {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .rf-code-info {
+            flex: 1;
+            color: #e5e7eb;
+        }
+
+        .rf-code-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            background: rgba(0, 212, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+        }
+
+        .info-label {
+            font-size: 0.85em;
+            color: #9ca3af;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #00d4ff;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .connection-mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .mode-btn:hover {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .mode-btn.active {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.15);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .mode-btn h3 {
+            margin-bottom: 5px;
+            color: #00d4ff;
+        }
+
+        .mode-btn p {
+            font-size: 0.9em;
+            color: #9ca3af;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        /* Footer - Haptique Branding */
+        .footer {
+            background: rgba(10, 14, 39, 0.9);
+            border-top: 1px solid rgba(0, 212, 255, 0.2);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .footer-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 0.85em;
+            color: #9ca3af;
+        }
+
+        .footer-logo {
+            width: 80px;
+            height: auto;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .footer-logo:hover {
+            opacity: 1;
+        }
+
+        .footer-link {
+            color: #00d4ff;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .footer-link:hover {
+            background: rgba(0, 212, 255, 0.15);
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+
+        .footer-divider {
+            color: rgba(156, 163, 175, 0.3);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 212, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 212, 255, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 0;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .header-right {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .buy-rs90-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .logo {
+                width: 100px;
+                height: 50px;
+            }
+
+            .nav-tabs {
+                flex-wrap: nowrap;
+            }
+
+            .nav-tab {
+                font-size: 0.85em;
+                padding: 12px 15px;
+            }
+
+            .tab-content {
+                padding: 20px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .rf-code-item, .saved-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .rf-code-actions, .saved-item-actions {
+                margin-top: 10px;
+                width: 100%;
+            }
+
+            .footer {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .alert-container {
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- FIXED ALERT CONTAINER AT TOP -->
+    <div class="alert-container">
+        <div class="alert" id="globalAlert"></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <div class="logo">
+                    <img src="https://www.haptique.shop/cdn/shop/files/Haptique_85036832-7ea9-49e7-b0a3-fa4156449e8e.svg?v=1737464962&width=115" alt="Haptique Logo">
+                </div>
+                <div class="header-text">
+                    <h1>IR/RF HUb</h1>
+                    <p>IR/RF Signal Control System</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <a href="https://www.haptique.shop" target="_blank" rel="noopener" class="buy-rs90-btn">
+                    <img src="https://www.haptique.shop/cdn/shop/files/hero-img-2-new2.jpg?v=1756451656&width=100" alt="RS90 Remote">
+                    <span>🛒 Buy RS90</span>
+                </a>
+                <div class="connection-status">
+                    <span class="status-dot status-disconnected" id="statusDot"></span>
+                    <span id="statusText">Disconnected</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('connection')">🔌 Connection</button>
+            <button class="nav-tab" onclick="switchTab('ir')">📡 IR Send</button>
+            <button class="nav-tab" onclick="switchTab('ir-capture')">📥 IR Capture</button>
+            <button class="nav-tab" onclick="switchTab('ir-saved')">💾 IR Saved</button>
+            <button class="nav-tab" onclick="switchTab('rf')">📻 RF Send</button>
+            <button class="nav-tab" onclick="switchTab('rf-capture')">📥 RF Capture</button>
+            <button class="nav-tab" onclick="switchTab('rf-saved')">💾 RF Saved</button>
+            <button class="nav-tab" onclick="switchTab('settings')">⚙️ Settings</button>
+            <button class="nav-tab" onclick="switchTab('ota')">🔄 OTA</button>
+        </div>
+
+        <!-- Connection Tab -->
+        <div id="connectionTab" class="tab-content active">
+            <div class="card">
+                <div class="card-title">🔗 Connection Setup</div>
+                
+                <div class="connection-mode-selector">
+                    <div class="mode-btn active" onclick="selectConnectionMode('new')">
+                        <h3>🆕 New Device</h3>
+                        <p>First time setup in AP mode</p>
+                    </div>
+                    <div class="mode-btn" onclick="selectConnectionMode('existing')">
+                        <h3>📱 Existing Device</h3>
+                        <p>Connect with IP and Token</p>
+                    </div>
+                </div>
+
+                <!-- New Device Mode -->
+                <div id="newConnectionMode">
+                    <p style="padding: 15px; background: rgba(0, 212, 255, 0.1); border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(0, 212, 255, 0.3);">
+                        <strong>📶 Connect to device WiFi:</strong><br>
+                        SSID: <strong style="color: #00d4ff;">HAP_IRHUB</strong><br>
+                        Password: <strong style="color: #00d4ff;">12345678</strong><br>
+                        Device IP: <strong style="color: #00d4ff;">192.168.4.1</strong>
+                    </p>
+
+                    <button class="btn btn-primary" onclick="getInitialStatus()">
+                        🔍 Get Device Status & Token
+                    </button>
+
+                    <div id="initialStatusDisplay" class="hidden" style="margin-top: 20px;">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Device Name</div>
+                                <div class="info-value" id="initDeviceName">-</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Access Token</div>
+                                <div class="info-value" id="initToken" style="font-size: 0.8em; word-break: break-all;">-</div>
+                            </div>
+                        </div>
+                        <p style="padding: 10px; background: rgba(245, 158, 11, 0.2); border-radius: 8px; font-size: 0.9em; border: 1px solid rgba(245, 158, 11, 0.3); color: #fcd34d;">
+                            ⚠️ Save this token! You'll need it to connect later.
+                        </p>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <h3 style="color: #00d4ff; margin-bottom: 15px;">📶 Configure WiFi</h3>
+                        <button class="btn btn-secondary" onclick="scanWiFiNetworks()">
+                            🔍 Scan WiFi Networks
+                        </button>
+
+                        <div id="wifiListContainer" class="hidden" style="margin-top: 20px;">
+                            <div class="wifi-list" id="wifiList"></div>
+                        </div>
+
+                        <div id="wifiPasswordSection" class="hidden" style="margin-top: 20px;">
+                            <h3 style="color: #00d4ff;">Connect to: <span id="selectedSSID" style="color: #10b981;"></span></h3>
+                            <div class="form-group">
+                                <label>WiFi Password</label>
+                                <input type="password" id="wifiPassword" placeholder="Enter WiFi password">
+                            </div>
+                            <button class="btn btn-primary" onclick="connectToWiFi()">
+                                📡 Connect to WiFi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Existing Device Mode -->
+                <div id="existingConnectionMode" class="hidden">
+                    <div class="form-group">
+                        <label>Device IP Address</label>
+                        <input type="text" id="deviceIP" placeholder="192.168.1.100 or 192.168.4.1">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Authentication Token</label>
+                        <input type="text" id="authToken" placeholder="Enter your device token">
+                    </div>
+
+                    <button class="btn btn-primary" onclick="connectToDevice()">
+                        🔗 Connect to Device
+                    </button>
+
+                    <div id="deviceStatusDisplay" class="hidden" style="margin-top: 20px;">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Device Name</div>
+                                <div class="info-value" id="deviceName">-</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">IP Address</div>
+                                <div class="info-value" id="deviceIPDisplay">-</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">MAC Address</div>
+                                <div class="info-value" id="deviceMAC">-</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Firmware</div>
+                                <div class="info-value" id="deviceFirmware">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- IR Control Tab -->
+        <div id="irTab" class="tab-content">
+            <div class="card">
+                <div class="card-title">📡 IR Transmit (Send)</div>
+                
+                <div class="form-group">
+                    <label>Frequency (kHz)</label>
+                    <input type="number" id="irFreq" value="38" min="1" max="100">
+                </div>
+
+                <div class="form-group">
+                    <label>Duty Cycle (%)</label>
+                    <input type="number" id="irDuty" value="33" min="1" max="100">
+                </div>
+
+                <div class="form-group">
+                    <label>Repeat Count</label>
+                    <input type="number" id="irRepeat" value="1" min="1" max="10">
+                </div>
+
+                <div class="form-group">
+                    <label>Raw Timings (microseconds, comma-separated)</label>
+                    <textarea id="irRawData" rows="5" placeholder="3534, 1699, 481, 390, 482..."></textarea>
+                </div>
+
+                <button class="btn btn-primary" onclick="sendIRCommand()">
+                    📤 Send IR Command
+                </button>
+
+                <button class="btn btn-secondary" onclick="testIRCarrier()">
+                    🔬 Test Carrier (800ms)
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📥 IR Receive (Legacy)</div>
+                
+                <button class="btn btn-success" onclick="captureIRSignalLegacy()">
+                    🎯 Capture IR Signal (Last)
+                </button>
+
+                <div id="irCaptureDisplay" class="ir-capture-display hidden"></div>
+            </div>
+        </div>
+
+        <!-- IR Capture Tab -->
+        <div id="ir-captureTab" class="tab-content">
+            <h2 style="color: #00d4ff; margin-bottom: 20px;">📡 Capture IR Signal</h2>
+            
+            <div class="card">
+                <div class="card-title">Step 1: Capture Signal</div>
+                <p style="margin-bottom: 15px; color: #9ca3af;">Point your remote at the IR receiver and press the button you want to capture.</p>
+                <button class="btn btn-primary" onclick="captureNewIR()" id="captureIRBtn">
+                    🎯 Capture IR Signal
+                </button>
+            </div>
+
+            <div id="capturedIRDataSection" style="display: none;">
+                <div class="card">
+                    <div class="card-title">📊 Step 2: View Captured Frames</div>
+                    <p style="margin-bottom: 15px; color: #9ca3af;">Select a frame below to view its data:</p>
+                    
+                    <div class="frame-tabs" id="irFrameTabs"></div>
+                    
+                    <div id="irFrameContents"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">💾 Step 3: Save Signal</div>
+                    <div class="form-group">
+                        <label>Signal Name *</label>
+                        <input type="text" id="irSignalName" placeholder="e.g., tv_power, ac_on, living_room_fan">
+                    </div>
+                    <div class="form-group">
+                        <label>Select Frame to Save *</label>
+                        <select id="irFrameSelect">
+                            <option value="">Choose a frame...</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-success" onclick="saveNewIRSignal()">
+                        💾 Save IR Signal to Device
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- IR Saved Tab -->
+        <div id="ir-savedTab" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="color: #00d4ff; margin: 0;">💾 Saved IR Signals</h2>
+                <button class="btn btn-primary" onclick="loadSavedIRSignals()">
+                    🔄 Refresh List
+                </button>
+            </div>
+
+            <div id="savedIRList"></div>
+        </div>
+
+        <!-- RF Tab -->
+        <div id="rfTab" class="tab-content">
+            <div class="card">
+                <div class="card-title">📻 RF 433MHz Transmit</div>
+                
+                <div class="form-group">
+                    <label>Code (Decimal)</label>
+                    <input type="number" id="rfCode" value="0" placeholder="RF code to send">
+                </div>
+
+                <div class="form-group">
+                    <label>Bits</label>
+                    <input type="number" id="rfBits" value="24" min="1" max="64">
+                </div>
+
+                <div class="form-group">
+                    <label>Protocol</label>
+                    <select id="rfProtocol">
+                        <option value="1">Protocol 1 (Default)</option>
+                        <option value="2">Protocol 2</option>
+                        <option value="3">Protocol 3</option>
+                        <option value="4">Protocol 4</option>
+                        <option value="5">Protocol 5</option>
+                        <option value="6">Protocol 6</option>
+                        <option value="7">Protocol 7</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Repeat Count</label>
+                    <input type="number" id="rfRepeat" value="10" min="1" max="20">
+                </div>
+
+                <button class="btn btn-primary" onclick="sendRFCommand()">
+                    📤 Send RF Code
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📥 RF 433MHz Receive & Monitor (Local Storage)</div>
+                
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Total Received</div>
+                        <div class="info-value" id="rfRxCount">0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Last Code</div>
+                        <div class="info-value" id="rfLastCode">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Bits</div>
+                        <div class="info-value" id="rfLastBits">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Protocol</div>
+                        <div class="info-value" id="rfLastProtocol">-</div>
+                    </div>
+                </div>
+
+                <button class="btn btn-success" onclick="startRFMonitoring()">
+                    🎯 Start RF Monitoring
+                </button>
+
+                <button class="btn btn-danger" onclick="stopRFMonitoring()">
+                    ⏹ Stop Monitoring
+                </button>
+
+                <button class="btn btn-secondary" onclick="getRFStatus()">
+                    ℹ️ Get RF Status
+                </button>
+
+                <div id="rfCaptureDisplay" class="rf-capture-display hidden" style="margin-top: 20px;"></div>
+
+                <div id="rfSaveSection" class="hidden" style="margin-top: 20px;">
+                    <h3 style="color: #00d4ff;">💾 Save Current RF Code</h3>
+                    <div class="form-group">
+                        <label>Name for this code</label>
+                        <input type="text" id="rfCodeName" placeholder="e.g., Living Room Light">
+                    </div>
+                    <button class="btn btn-primary" onclick="saveCurrentRFCode()">
+                        💾 Save RF Code
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📚 Saved RF Codes (Local)</div>
+                <div id="rfSavedCodes">
+                    <p style="color: #6b7280; text-align: center; padding: 20px;">No saved codes yet. Start monitoring to capture codes!</p>
+                </div>
+                
+                <div style="margin-top: 15px; text-align: center;">
+                    <button class="btn btn-warning" onclick="exportRFCodes()">
+                        📥 Export Codes
+                    </button>
+                    <button class="btn btn-warning" onclick="importRFCodes()">
+                        📤 Import Codes
+                    </button>
+                    <button class="btn btn-danger" onclick="clearAllRFCodes()">
+                        🗑️ Clear All
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RF Capture Tab -->
+        <div id="rf-captureTab" class="tab-content">
+            <h2 style="color: #00d4ff; margin-bottom: 20px;">📻 Capture RF Signal</h2>
+            
+            <div class="card">
+                <div class="card-title">📊 Step 1: Capture RF Signal</div>
+                <p style="margin-bottom: 15px; color: #9ca3af;">Start monitoring and press your RF remote button to capture the signal.</p>
+                
+                <button class="btn btn-primary" onclick="startNewRFMonitoring()" id="newRfCaptureBtn">
+                    🎯 Start RF Monitoring
+                </button>
+                <button class="btn btn-danger" onclick="stopNewRFMonitoring()" id="newRfStopBtn" style="display: none;">
+                    ⏹️ Stop Monitoring
+                </button>
+            </div>
+
+            <div id="capturedNewRFSection" style="display: none;">
+                <div class="card">
+                    <div class="card-title">📊 Step 2: View Captured Data</div>
+                    <div class="code-display" id="newRfDataDisplay"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">💾 Step 3: Save RF Signal</div>
+                    <div class="form-group">
+                        <label>Signal Name *</label>
+                        <input type="text" id="newRfSignalName" placeholder="e.g., tv_power, fan_on, garage_door">
+                    </div>
+                    <button class="btn btn-success" onclick="saveNewRFSignal()">
+                        💾 Save RF Signal to Device
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RF Saved Tab -->
+        <div id="rf-savedTab" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="color: #00d4ff; margin: 0;">💾 Saved RF Signals</h2>
+                <button class="btn btn-primary" onclick="loadSavedRFSignals()">
+                    🔄 Refresh List
+                </button>
+            </div>
+
+            <div id="savedRFList"></div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settingsTab" class="tab-content">
+            <div class="card">
+                <div class="card-title">⚙️ Device Settings</div>
+                
+                <button class="btn btn-secondary" onclick="getDeviceSettings()">
+                    🔄 Refresh Settings
+                </button>
+
+                <div style="margin-top: 20px;">
+                    <div class="form-group">
+                        <label>Hostname</label>
+                        <input type="text" id="hostname" placeholder="Device hostname">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Instance Name</label>
+                        <input type="text" id="instanceName" placeholder="Device instance name">
+                    </div>
+
+                    <button class="btn btn-success" onclick="saveHostname()">
+                        💾 Save Hostname
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📶 WiFi Management</div>
+                
+                <button class="btn btn-secondary" onclick="getWiFiStatus()">
+                    ℹ️ Get WiFi Status
+                </button>
+
+                <button class="btn btn-danger" onclick="factoryReset()" style="background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);">
+                    ⚠️ Factory Reset
+                </button>
+
+                <div id="wifiStatusDisplay" class="hidden" style="margin-top: 20px;">
+                    <pre id="wifiStatusData" style="background: rgba(0, 0, 0, 0.5); padding: 15px; border-radius: 8px; overflow-x: auto; color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);"></pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">🔧 Token Management</div>
+                
+                <div class="info-item" style="margin-bottom: 15px;">
+                    <div class="info-label">Current Token</div>
+                    <div class="info-value" id="currentTokenDisplay" style="font-size: 0.9em; word-break: break-all;">Not set</div>
+                </div>
+
+                <div class="form-group">
+                    <label>New Token (Manual Override)</label>
+                    <input type="text" id="newToken" placeholder="Enter new token">
+                </div>
+
+                <button class="btn btn-warning" onclick="replaceToken()">
+                    🔄 Replace Token
+                </button>
+
+                <button class="btn btn-secondary" onclick="copyToken()">
+                    📋 Copy Current Token
+                </button>
+            </div>
+        </div>
+
+        <!-- OTA Tab -->
+        <div id="otaTab" class="tab-content">
+            <div class="card">
+                <div class="card-title">🔄 OTA Updates</div>
+                
+                <button class="btn btn-secondary" onclick="getOTAStatus()">
+                    ℹ️ Get OTA Status
+                </button>
+
+                <button class="btn btn-primary" onclick="checkForUpdates()">
+                    🔍 Check for Updates
+                </button>
+
+                <div id="otaStatusDisplay" class="hidden" style="margin-top: 20px;">
+                    <pre id="otaStatusData" style="background: rgba(0, 0, 0, 0.5); padding: 15px; border-radius: 8px; overflow-x: auto; color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-content">
+                <a href="https://www.haptique.shop" target="_blank" rel="noopener">
+                    <img src="https://www.haptique.shop/cdn/shop/files/Haptique_85036832-7ea9-49e7-b0a3-fa4156449e8e.svg?v=1737464962&width=115" alt="Haptique" class="footer-logo">
+                </a>
+                <span class="footer-divider">|</span>
+                <span>Powered by Haptique</span>
+                <span class="footer-divider">|</span>
+                <a href="https://www.haptique.shop/products/haptique-rs90-smart-control-with-ir-ip-bluetooth" target="_blank" rel="noopener" class="footer-link">
+                    🛒 Get Haptique RS90
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        let config = {
+            baseUrl: 'http://192.168.4.1',
+            token: '',
+            isConnected: false,
+            lastIP: ''
+        };
+
+        let rfCodes = [];
+        let rfMonitoringInterval = null;
+        let currentRFData = null;
+        let capturedNewIRData = null;
+        let capturedNewRFData = null;
+        let newRfMonitoringInterval = null;
+
+        function loadConfig() {
+            const savedConfig = localStorage.getItem('esp32_config');
+            if (savedConfig) {
+                const parsed = JSON.parse(savedConfig);
+                config = { ...config, ...parsed };
+                document.getElementById('deviceIP').value = parsed.lastIP || '';
+                document.getElementById('authToken').value = parsed.token || '';
+                document.getElementById('currentTokenDisplay').textContent = parsed.token || 'Not set';
+                updateConnectionStatus(false);
+            }
+
+            const savedRFCodes = localStorage.getItem('esp32_rf_codes');
+            if (savedRFCodes) {
+                rfCodes = JSON.parse(savedRFCodes);
+                updateRFCodesList();
+            }
+        }
+
+        function saveConfig() {
+            localStorage.setItem('esp32_config', JSON.stringify(config));
+        }
+
+        function saveRFCodes() {
+            localStorage.setItem('esp32_rf_codes', JSON.stringify(rfCodes));
+        }
+
+        function updateConnectionStatus(isConnected) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            if (isConnected) {
+                statusDot.className = 'status-dot status-connected';
+                statusText.textContent = 'Connected';
+                config.isConnected = true;
+            } else {
+                statusDot.className = 'status-dot status-disconnected';
+                statusText.textContent = 'Disconnected';
+                config.isConnected = false;
+            }
+        }
+
+        // UPDATED SHOW ALERT - USES GLOBAL FIXED ALERT
+        function showAlert(tabId, message, type = 'info') {
+            const alert = document.getElementById('globalAlert');
+            alert.className = 'alert alert-' + type + ' show';
+            alert.textContent = message;
+            
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 5000);
+        }
+
+        async function apiRequest(endpoint, options = {}) {
+            const url = config.baseUrl + endpoint;
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            const isAPMode = config.baseUrl.includes('192.168.4.1');
+            const noAuthEndpoints = ['/api/status', '/api/wifi/scan', '/api/wifi/save', '/api/token'];
+            const skipAuth = isAPMode && noAuthEndpoints.some(ep => endpoint.startsWith(ep));
+
+            const requireAuthEndpoints = [
+                '/api/ir/save', '/api/ir/saved', '/api/ir/send/name', '/api/ir/last', '/api/ir/delete',
+                '/api/rf/save', '/api/rf/saved', '/api/rf/send/name', '/api/rf/last', '/api/rf/delete'
+            ];
+            const forceAuth = requireAuthEndpoints.some(ep => endpoint.startsWith(ep) || endpoint === ep);
+
+            if (config.token && (!skipAuth || forceAuth)) {
+                headers['Authorization'] = 'Bearer ' + config.token;
+            }
+
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers
+                });
+
+                const contentType = response.headers.get('content-type');
+                let data;
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    data = await response.text();
+                }
+
+                if (!response.ok) {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                }
+
+                return data;
+            } catch (error) {
+                console.error('API Request Error:', error);
+                throw error;
+            }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName + 'Tab').classList.add('active');
+
+            if (tabName === 'ir-saved') {
+                loadSavedIRSignals();
+            } else if (tabName === 'rf-saved') {
+                loadSavedRFSignals();
+            }
+        }
+
+        function selectConnectionMode(mode) {
+            const buttons = document.querySelectorAll('.mode-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.mode-btn').classList.add('active');
+
+            if (mode === 'new') {
+                document.getElementById('newConnectionMode').classList.remove('hidden');
+                document.getElementById('existingConnectionMode').classList.add('hidden');
+                config.baseUrl = 'http://192.168.4.1';
+            } else {
+                document.getElementById('newConnectionMode').classList.add('hidden');
+                document.getElementById('existingConnectionMode').classList.remove('hidden');
+            }
+        }
+
+        async function getInitialStatus() {
+            try {
+                config.baseUrl = 'http://192.168.4.1';
+                const data = await apiRequest('/api/status');
+                
+                if (data.token) {
+                    config.token = data.token;
+                    config.lastIP = '192.168.4.1';
+                    saveConfig();
+                    document.getElementById('initToken').textContent = config.token;
+                    document.getElementById('currentTokenDisplay').textContent = config.token;
+                } else {
+                    document.getElementById('initToken').textContent = 'Not required in AP mode';
+                }
+
+                document.getElementById('initDeviceName').textContent = data.instance || data.hostname || 'Unknown';
+                document.getElementById('initialStatusDisplay').classList.remove('hidden');
+                
+                showAlert('connection', 'Device status retrieved successfully!', 'success');
+                updateConnectionStatus(true);
+            } catch (error) {
+                showAlert('connection', 'Failed to get status: ' + error.message, 'error');
+            }
+        }
+
+        async function connectToDevice() {
+            const ip = document.getElementById('deviceIP').value.trim();
+            const token = document.getElementById('authToken').value.trim();
+
+            if (!ip) {
+                showAlert('connection', 'Please enter device IP address', 'error');
+                return;
+            }
+
+            if (!token) {
+                showAlert('connection', 'Please enter authentication token', 'error');
+                return;
+            }
+
+            config.baseUrl = ip.startsWith('http') ? ip : 'http://' + ip;
+            config.token = token;
+            config.lastIP = ip;
+            saveConfig();
+
+            try {
+                const data = await apiRequest('/api/status');
+                
+                document.getElementById('deviceName').textContent = data.instance || data.hostname || 'Unknown';
+                document.getElementById('deviceIPDisplay').textContent = data.sta_ip || config.baseUrl;
+                document.getElementById('deviceMAC').textContent = data.mac || '-';
+                document.getElementById('deviceFirmware').textContent = data.fw_ver || '-';
+                
+                document.getElementById('deviceStatusDisplay').classList.remove('hidden');
+                document.getElementById('currentTokenDisplay').textContent = token;
+                updateConnectionStatus(true);
+                
+                showAlert('connection', 'Successfully connected to device!', 'success');
+            } catch (error) {
+                showAlert('connection', 'Failed to connect: ' + error.message, 'error');
+                updateConnectionStatus(false);
+            }
+        }
+
+        // ... [ALL OTHER JAVASCRIPT FUNCTIONS REMAIN EXACTLY THE SAME] ...
+        // I'm keeping the rest of the JavaScript unchanged to save space
+        // Just replace showAlert function calls to use the global alert
+
+        async function scanWiFiNetworks() {
+            try {
+                showAlert('connection', 'Scanning WiFi networks...', 'info');
+                const networks = await apiRequest('/api/wifi/scan');
+                
+                const wifiList = document.getElementById('wifiList');
+                wifiList.innerHTML = '';
+
+                const networksArray = networks.networks || networks;
+
+                if (networksArray && networksArray.length > 0) {
+                    networksArray.forEach(network => {
+                        const item = document.createElement('div');
+                        item.className = 'wifi-item';
+                        item.onclick = () => selectWiFiNetwork(network.ssid, item);
+                        
+                        const rssi = network.rssi || -100;
+                        const signal = Math.min(Math.max((rssi + 100) / 50 * 100, 0), 100);
+                        
+                        item.innerHTML = `
+                            <div>
+                                <strong style="color: #e5e7eb;">${network.ssid}</strong>
+                                <div style="font-size: 0.9em; color: #9ca3af;">
+                                    ${network.enc ? 'Secured' : 'Open'}
+                                </div>
+                            </div>
+                            <div>
+                                <span style="color: #00d4ff;">${Math.round(signal)}%</span>
+                                <span style="margin-left: 10px; color: #6b7280;">${rssi} dBm</span>
+                            </div>
+                        `;
+                        
+                        wifiList.appendChild(item);
+                    });
+
+                    document.getElementById('wifiListContainer').classList.remove('hidden');
+                    showAlert('connection', `Found ${networksArray.length} networks`, 'success');
+                } else {
+                    showAlert('connection', 'No networks found', 'warning');
+                }
+            } catch (error) {
+                showAlert('connection', 'Scan failed: ' + error.message, 'error');
+            }
+        }
+
+        function selectWiFiNetwork(ssid, itemElement) {
+            document.querySelectorAll('.wifi-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            itemElement.classList.add('selected');
+            
+            document.getElementById('selectedSSID').textContent = ssid;
+            document.getElementById('wifiPasswordSection').classList.remove('hidden');
+            window.selectedSSID = ssid;
+        }
+
+        async function connectToWiFi() {
+            const ssid = window.selectedSSID;
+            const password = document.getElementById('wifiPassword').value;
+
+            if (!ssid) {
+                showAlert('connection', 'Please select a network', 'error');
+                return;
+            }
+
+            try {
+                showAlert('connection', 'Connecting to WiFi...', 'info');
+                await apiRequest('/api/wifi/save', {
+                    method: 'POST',
+                    body: JSON.stringify({ ssid: ssid, pass: password })
+                });
+
+                showAlert('connection', 'WiFi credentials saved! Device is connecting...', 'success');
+                
+                setTimeout(async () => {
+                    try {
+                        const status = await apiRequest('/api/wifi/status');
+                        if (status.sta && status.sta.ok) {
+                            showAlert('connection', `Connected! New IP: ${status.sta.ip}`, 'success');
+                        }
+                    } catch (e) {
+                        console.log('Status check:', e);
+                    }
+                }, 5000);
+            } catch (error) {
+                showAlert('connection', 'Failed to connect: ' + error.message, 'error');
+            }
+        }
+
+        // Add all remaining functions from the original code here...
+        // (Due to character limit, I'm showing the key changes. The rest of the JavaScript remains the same)
+
+        async function sendIRCommand() {
+            const freq = parseInt(document.getElementById('irFreq').value);
+            const duty = parseInt(document.getElementById('irDuty').value);
+            const repeat = parseInt(document.getElementById('irRepeat').value);
+            const rawData = document.getElementById('irRawData').value;
+
+            if (!rawData) {
+                showAlert('ir', 'Please enter raw timings', 'error');
+                return;
+            }
+
+            try {
+                const raw = rawData.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+                
+                await apiRequest('/api/ir/send', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        freq_khz: freq,
+                        duty: duty,
+                        repeat: repeat,
+                        raw: raw
+                    })
+                });
+
+                showAlert('ir', 'IR command sent successfully!', 'success');
+            } catch (error) {
+                showAlert('ir', 'Failed to send: ' + error.message, 'error');
+            }
+        }
+
+        async function testIRCarrier() {
+            try {
+                await apiRequest('/api/ir/test?ms=800');
+                showAlert('ir', 'IR carrier test sent (800ms)', 'success');
+            } catch (error) {
+                showAlert('ir', 'Test failed: ' + error.message, 'error');
+            }
+        }
+
+        async function captureIRSignalLegacy() {
+            try {
+                showAlert('ir', 'Point remote at device and press button...', 'info');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                const data = await apiRequest('/api/ir/last');
+                
+                const display = document.getElementById('irCaptureDisplay');
+                display.textContent = JSON.stringify(data, null, 2);
+                display.classList.remove('hidden');
+                
+                showAlert('ir', 'IR signal captured!', 'success');
+            } catch (error) {
+                showAlert('ir', 'Capture failed: ' + error.message, 'error');
+            }
+        }
+
+        async function captureNewIR() {
+            const btn = document.getElementById('captureIRBtn');
+            
+            if (!config.token) {
+                showAlert('ir-capture', '❌ Not authenticated. Please connect to device first.', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Waiting for IR signal... Point remote and press button!';
+
+            try {
+                const data = await apiRequest('/api/ir/last');
+                
+                if (!data || data.error) {
+                    throw new Error(data.error || 'No IR signal captured yet. Please press a remote button.');
+                }
+
+                capturedNewIRData = data;
+                displayCapturedIRData(data);
+                showAlert('ir-capture', '✅ IR Signal captured successfully! Now select a frame and save.', 'success');
+                
+            } catch (error) {
+                showAlert('ir-capture', '❌ Failed to capture: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🎯 Capture IR Signal';
+            }
+        }
+
+        function displayCapturedIRData(data) {
+            const section = document.getElementById('capturedIRDataSection');
+            const frameTabs = document.getElementById('irFrameTabs');
+            const frameContents = document.getElementById('irFrameContents');
+            const frameSelect = document.getElementById('irFrameSelect');
+
+            section.style.display = 'block';
+            frameTabs.innerHTML = '';
+            frameContents.innerHTML = '';
+            frameSelect.innerHTML = '<option value="">Choose a frame...</option>';
+
+            const frames = [];
+            
+            if (data.a && data.countA > 0) {
+                frames.push({ 
+                    key: 'A', 
+                    data: data.a, 
+                    displayName: 'Frame A',
+                    count: data.countA 
+                });
+            }
+            
+            if (data.b && data.countB > 0) {
+                frames.push({ 
+                    key: 'B', 
+                    data: data.b, 
+                    displayName: 'Frame B',
+                    count: data.countB 
+                });
+            }
+            
+            if (data.combined && data.combined_count > 0) {
+                frames.push({ 
+                    key: 'combined', 
+                    data: data.combined, 
+                    displayName: 'Combined Frame',
+                    count: data.combined_count 
+                });
+            }
+
+            if (frames.length === 0) {
+                frameContents.innerHTML = '<div class="code-display">' + JSON.stringify(data, null, 2) + '</div>';
+                frameSelect.innerHTML += '<option value="combined">All Data</option>';
+                return;
+            }
+
+            frames.forEach((frame, index) => {
+                const tabBtn = document.createElement('button');
+                tabBtn.className = 'frame-tab' + (index === 0 ? ' active' : '');
+                tabBtn.textContent = `${frame.displayName} (${frame.count} timings)`;
+                tabBtn.onclick = () => switchIRFrameTab(frame.key);
+                frameTabs.appendChild(tabBtn);
+
+                const content = document.createElement('div');
+                content.className = 'frame-content' + (index === 0 ? ' active' : '');
+                content.id = `ir-frame-${frame.key}`;
+                
+                const frameInfo = {
+                    type: 'IR Signal',
+                    freq_khz: data.freq_khz,
+                    count: frame.count,
+                    timings: frame.data
+                };
+                
+                content.innerHTML = `<div class="code-display">${JSON.stringify(frameInfo, null, 2)}</div>`;
+                frameContents.appendChild(content);
+
+                const option = document.createElement('option');
+                option.value = frame.key;
+                option.textContent = frame.displayName;
+                frameSelect.appendChild(option);
+            });
+
+            if (frames.length > 0) {
+                frameSelect.value = frames[0].key;
+            }
+        }
+
+        function switchIRFrameTab(frameKey) {
+            document.querySelectorAll('.frame-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.frame-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            event.target.classList.add('active');
+            document.getElementById(`ir-frame-${frameKey}`).classList.add('active');
+        }
+
+        async function saveNewIRSignal() {
+            const name = document.getElementById('irSignalName').value.trim();
+            const frameKey = document.getElementById('irFrameSelect').value;
+
+            if (!name) {
+                showAlert('ir-capture', 'Please enter a signal name', 'error');
+                return;
+            }
+
+            if (!frameKey) {
+                showAlert('ir-capture', 'Please select a frame to save', 'error');
+                return;
+            }
+
+            if (!capturedNewIRData) {
+                showAlert('ir-capture', 'No captured data available. Please capture a signal first.', 'error');
+                return;
+            }
+
+            if (!config.token) {
+                showAlert('ir-capture', 'Not authenticated. Please connect to device first.', 'error');
+                return;
+            }
+
+            try {
+                await apiRequest('/api/ir/save', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: name,
+                        frame: frameKey
+                    })
+                });
+
+                showAlert('ir-capture', `✅ Signal "${name}" saved successfully to device!`, 'success');
+                document.getElementById('irSignalName').value = '';
+                
+                setTimeout(() => {
+                    showAlert('ir-capture', 'You can now send this signal from the "IR Saved" tab', 'info');
+                }, 2000);
+                
+            } catch (error) {
+                showAlert('ir-capture', '❌ Failed to save: ' + error.message, 'error');
+            }
+        }
+
+        async function loadSavedIRSignals() {
+            if (!config.token) {
+                showAlert('ir-saved', '❌ Not authenticated. Please connect to device first.', 'error');
+                const container = document.getElementById('savedIRList');
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>⚠️ Not Connected</h3>
+                        <p>Please connect to your device from the Connection tab first</p>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                const data = await apiRequest('/api/ir/saved');
+                displaySavedIRSignals(data);
+            } catch (error) {
+                showAlert('ir-saved', '❌ Failed to load: ' + error.message, 'error');
+            }
+        }
+
+        function displaySavedIRSignals(data) {
+            const container = document.getElementById('savedIRList');
+            
+            const signals = data.commands || [];
+
+            if (signals.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+                        </svg>
+                        <h3>No Saved Signals</h3>
+                        <p>Capture and save IR signals to see them here</p>
+                        <p style="color: #6b7280; font-size: 0.9em;">Storage: ${data.count || 0}/${data.max || 50} used</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div style="margin-bottom: 15px; padding: 10px; background: rgba(0, 212, 255, 0.1); border-radius: 8px; border: 1px solid rgba(0, 212, 255, 0.3);">
+                    <strong>📊 Storage:</strong> ${data.count} / ${data.max} signals used (${data.available} available)
+                </div>
+            ` + signals.map(signal => `
+                <div class="saved-item">
+                    <div class="saved-item-info">
+                        <div class="saved-item-name">📡 ${signal.name}</div>
+                        <div class="saved-item-details">
+                            Frequency: ${signal.freq_hz} Hz | Duty: ${signal.duty}% | Timings: ${signal.count}
+                        </div>
+                    </div>
+                    <div class="saved-item-actions">
+                        <button class="btn btn-success" onclick="sendSavedIRSignal('${signal.name}')">
+                            📤 Send
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteSavedIRSignal('${signal.name}')">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function sendSavedIRSignal(name) {
+            if (!config.token) {
+                showAlert('ir-saved', '❌ Not authenticated. Please connect to device first.', 'error');
+                return;
+            }
+
+            try {
+                await apiRequest('/api/ir/send/name', {
+                    method: 'POST',
+                    body: JSON.stringify({ name: name })
+                });
+                showAlert('ir-saved', `✅ Signal "${name}" sent successfully!`, 'success');
+            } catch (error) {
+                showAlert('ir-saved', '❌ Failed to send: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteSavedIRSignal(name) {
+            if (!config.token) {
+                showAlert('ir-saved', '❌ Not authenticated. Please connect to device first.', 'error');
+                return;
+            }
+
+            if (!confirm(`Delete signal "${name}"?`)) return;
+
+            try {
+                await apiRequest('/api/ir/delete', {
+                    method: 'DELETE',
+                    body: JSON.stringify({ name: name })
+                });
+                showAlert('ir-saved', '✅ Signal deleted successfully!', 'success');
+                loadSavedIRSignals();
+            } catch (error) {
+                showAlert('ir-saved', '❌ Failed to delete: ' + error.message, 'error');
+            }
+        }
+
+        async function sendRFCommand() {
+            const code = parseInt(document.getElementById('rfCode').value);
+            const bits = parseInt(document.getElementById('rfBits').value);
+            const protocol = parseInt(document.getElementById('rfProtocol').value);
+            const repeat = parseInt(document.getElementById('rfRepeat').value);
+
+            if (!code || code === 0) {
+                showAlert('rf', 'Please enter a valid RF code', 'error');
+                return;
+            }
+
+            try {
+                await apiRequest('/api/rf/send', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        code: code,
+                        bits: bits,
+                        protocol: protocol,
+                        repeat: repeat
+                    })
+                });
+
+                showAlert('rf', `RF code ${code} sent successfully!`, 'success');
+            } catch (error) {
+                showAlert('rf', 'Failed to send: ' + error.message, 'error');
+            }
+        }
+
+        async function getRFStatus() {
+            try {
+                const status = await apiRequest('/api/rf/status');
+                
+                document.getElementById('rfRxCount').textContent = status.rx_count || 0;
+                document.getElementById('rfLastCode').textContent = status.last_code || '-';
+                document.getElementById('rfLastBits').textContent = status.last_bits || '-';
+                document.getElementById('rfLastProtocol').textContent = status.last_protocol || '-';
+                
+                showAlert('rf', 'RF status updated!', 'success');
+            } catch (error) {
+                showAlert('rf', 'Failed to get status: ' + error.message, 'error');
+            }
+        }
+
+        function startRFMonitoring() {
+            if (rfMonitoringInterval) {
+                showAlert('rf', 'Monitoring already active', 'warning');
+                return;
+            }
+
+            showAlert('rf', '🎯 RF monitoring started. Press any RF remote button...', 'info');
+            document.getElementById('rfCaptureDisplay').classList.remove('hidden');
+            
+            rfMonitoringInterval = setInterval(async () => {
+                try {
+                    const data = await apiRequest('/api/rf/last');
+                    
+                    if (data && data.code && data.code > 0) {
+                        currentRFData = data;
+                        
+                        document.getElementById('rfLastCode').textContent = data.code;
+                        document.getElementById('rfLastBits').textContent = data.bits;
+                        document.getElementById('rfLastProtocol').textContent = data.protocol;
+                        document.getElementById('rfRxCount').textContent = data.count || 1;
+                        
+                        const display = document.getElementById('rfCaptureDisplay');
+                        display.innerHTML = `<strong>📻 RF Code Received!</strong>
+
+Code:      ${data.code}
+Bits:      ${data.bits}
+Protocol:  ${data.protocol}
+Pulse Len: ${data.pulselen || 'N/A'}
+Count:     ${data.count || 1}
+
+<button class="btn btn-primary" onclick="fillRFForm()" style="margin-top: 10px;">📝 Use This Code</button>`;
+                        
+                        document.getElementById('rfSaveSection').classList.remove('hidden');
+                    }
+                } catch (error) {
+                    console.error('Monitoring error:', error);
+                }
+            }, 500);
+        }
+
+        function stopRFMonitoring() {
+            if (rfMonitoringInterval) {
+                clearInterval(rfMonitoringInterval);
+                rfMonitoringInterval = null;
+                showAlert('rf', 'RF monitoring stopped', 'info');
+            }
+        }
+
+        function fillRFForm() {
+            if (!currentRFData) return;
+            
+            document.getElementById('rfCode').value = currentRFData.code;
+            document.getElementById('rfBits').value = currentRFData.bits;
+            document.getElementById('rfProtocol').value = currentRFData.protocol;
+            
+            showAlert('rf', 'Form filled with received code', 'success');
+        }
+
+        function saveCurrentRFCode() {
+            if (!currentRFData) {
+                showAlert('rf', 'No RF code to save', 'error');
+                return;
+            }
+
+            const name = document.getElementById('rfCodeName').value.trim();
+            if (!name) {
+                showAlert('rf', 'Please enter a name for this code', 'error');
+                return;
+            }
+
+            rfCodes.push({
+                name: name,
+                code: currentRFData.code,
+                bits: currentRFData.bits,
+                protocol: currentRFData.protocol,
+                repeat: 10,
+                savedAt: new Date().toISOString()
+            });
+
+            saveRFCodes();
+            updateRFCodesList();
+            document.getElementById('rfCodeName').value = '';
+            showAlert('rf', `Code "${name}" saved successfully!`, 'success');
+        }
+
+        function updateRFCodesList() {
+            const container = document.getElementById('rfSavedCodes');
+            
+            if (rfCodes.length === 0) {
+                container.innerHTML = '<p style="color: #6b7280; text-align: center; padding: 20px;">No saved codes yet. Start monitoring to capture codes!</p>';
+                return;
+            }
+
+            container.innerHTML = rfCodes.map((code, index) => `
+                <div class="rf-code-item">
+                    <div class="rf-code-info">
+                        <strong style="color: #00d4ff;">${code.name}</strong><br>
+                        <span style="font-size: 0.9em; color: #9ca3af;">
+                            Code: ${code.code} | Bits: ${code.bits} | Protocol: ${code.protocol}
+                        </span>
+                    </div>
+                    <div class="rf-code-actions">
+                        <button class="btn btn-success" onclick="sendSavedRFCode(${index})" style="padding: 8px 12px; font-size: 0.9em;">
+                            📤 Send
+                        </button>
+                        <button class="btn btn-secondary" onclick="editRFCode(${index})" style="padding: 8px 12px; font-size: 0.9em;">
+                            ✏️ Edit
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteRFCode(${index})" style="padding: 8px 12px; font-size: 0.9em;">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function sendSavedRFCode(index) {
+            const code = rfCodes[index];
+            
+            try {
+                await apiRequest('/api/rf/send', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        code: code.code,
+                        bits: code.bits,
+                        protocol: code.protocol,
+                        repeat: code.repeat || 10
+                    })
+                });
+
+                showAlert('rf', `"${code.name}" sent successfully!`, 'success');
+            } catch (error) {
+                showAlert('rf', 'Failed to send: ' + error.message, 'error');
+            }
+        }
+
+        function editRFCode(index) {
+            const code = rfCodes[index];
+            
+            document.getElementById('rfCode').value = code.code;
+            document.getElementById('rfBits').value = code.bits;
+            document.getElementById('rfProtocol').value = code.protocol;
+            document.getElementById('rfRepeat').value = code.repeat || 10;
+            
+            switchTab('rf');
+            showAlert('rf', `Loaded "${code.name}" for editing`, 'info');
+        }
+
+        function deleteRFCode(index) {
+            const code = rfCodes[index];
+            if (!confirm(`Delete "${code.name}"?`)) return;
+            
+            rfCodes.splice(index, 1);
+            saveRFCodes();
+            updateRFCodesList();
+            showAlert('rf', 'Code deleted', 'success');
+        }
+
+        function exportRFCodes() {
+            if (rfCodes.length === 0) {
+                showAlert('rf', 'No codes to export', 'warning');
+                return;
+            }
+
+            const dataStr = JSON.stringify(rfCodes, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `rf_codes_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            showAlert('rf', 'RF codes exported successfully!', 'success');
+        }
+
+        function importRFCodes() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'application/json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+                        if (Array.isArray(imported)) {
+                            rfCodes = [...rfCodes, ...imported];
+                            saveRFCodes();
+                            updateRFCodesList();
+                            showAlert('rf', `Imported ${imported.length} codes successfully!`, 'success');
+                        } else {
+                            showAlert('rf', 'Invalid file format', 'error');
+                        }
+                    } catch (error) {
+                        showAlert('rf', 'Failed to import: ' + error.message, 'error');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function clearAllRFCodes() {
+            if (!confirm(`Delete all ${rfCodes.length} saved codes?`)) return;
+            
+            rfCodes = [];
+            saveRFCodes();
+            updateRFCodesList();
+            showAlert('rf', 'All codes cleared', 'success');
+        }
+
+        async function startNewRFMonitoring() {
+            if (!config.token) {
+                showAlert('rf-capture', '❌ Not authenticated. Please connect to device first.', 'error');
+                return;
+            }
+
+            document.getElementById('newRfCaptureBtn').style.display = 'none';
+            document.getElementById('newRfStopBtn').style.display = 'inline-block';
+            showAlert('rf-capture', '📡 RF monitoring started... Press your RF remote button now!', 'info');
+
+            newRfMonitoringInterval = setInterval(async () => {
+                try {
+                    const data = await apiRequest('/api/rf/last');
+                    
+                    if (data && !data.error && data.code && data.code > 0) {
+                        capturedNewRFData = data;
+                        displayCapturedNewRFData(data);
+                        stopNewRFMonitoring();
+                        showAlert('rf-capture', '✅ RF signal captured! Now enter a name and save.', 'success');
+                    }
+                } catch (error) {
+                    console.log('RF monitoring:', error);
+                }
+            }, 500);
+        }
+
+        function stopNewRFMonitoring() {
+            if (newRfMonitoringInterval) {
+                clearInterval(newRfMonitoringInterval);
+                newRfMonitoringInterval = null;
+            }
+            document.getElementById('newRfCaptureBtn').style.display = 'inline-block';
+            document.getElementById('newRfStopBtn').style.display = 'none';
+            showAlert('rf-capture', 'RF monitoring stopped', 'info');
+        }
+
+        function displayCapturedNewRFData(data) {
+            const section = document.getElementById('capturedNewRFSection');
+            const display = document.getElementById('newRfDataDisplay');
+            
+            section.style.display = 'block';
+            display.textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function saveNewRFSignal() {
+            const name = document.getElementById('newRfSignalName').value.trim();
+
+            if (!name) {
+                showAlert('rf-capture', 'Please enter a signal name', 'error');
+                return;
+            }
+
+            if (!capturedNewRFData) {
+                showAlert('rf-capture', 'No captured RF data available. Please capture a signal first.', 'error');
+                return;
+            }
+
+            if (!config.token) {
+                showAlert('rf-capture', 'Not authenticated. Please connect to device first.', 'error');
+                return;
+            }
+
+            try {
+                await apiRequest('/api/rf/save', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: name
+                    })
+                });
+
+                showAlert('rf-capture', `✅ RF signal "${name}" saved successfully to device!`, 'success');
+                document.getElementById('newRfSignalName').value = '';
+                
+                capturedNewRFData = null;
+                document.getElementById('capturedNewRFSection').style.display = 'none';
+                
+                setTimeout(() => {
+                    showAlert('rf-capture', 'You can now send this signal from the "RF Saved" tab', 'info');
+                }, 2000);
+                
+            } catch (error) {
+                showAlert('rf-capture', '❌ Failed to save: ' + error.message, 'error');
+            }
+        }
+
+        async function loadSavedRFSignals() {
+            if (!config.token) {
+                showAlert('rf-saved', '❌ Not authenticated. Please connect to device first.', 'error');
+                const container = document.getElementById('savedRFList');
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>⚠️ Not Connected</h3>
+                        <p>Please connect to your device from the Connection tab first</p>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                const data = await apiRequest('/api/rf/saved');
+                displaySavedRFSignals(data);
+            } catch (error) {
+                showAlert('rf-saved', '❌ Failed to load: ' + error.message, 'error');
+            }
+        }
+
+        function displaySavedRFSignals(data) {
+            const container = document.getElementById('savedRFList');
+            
+            const signals = data.commands || [];
+
+            if (signals.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+                        </svg>
+                        <h3>No Saved Signals</h3>
+                        <p>Capture and save RF signals to see them here</p>
+                        <p style="color: #6b7280; font-size: 0.9em;">Storage: ${data.count || 0} signals stored</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div style="margin-bottom: 15px; padding: 10px; background: rgba(0, 212, 255, 0.1); border-radius: 8px; border: 1px solid rgba(0, 212, 255, 0.3);">
+                    <strong>📊 Storage:</strong> ${data.count} RF signals saved
+                </div>
+            ` + signals.map(signal => `
+                <div class="saved-item">
+                    <div class="saved-item-info">
+                        <div class="saved-item-name">📻 ${signal.name}</div>
+                        <div class="saved-item-details">
+                            Code: ${signal.code} | Bits: ${signal.bits} | Protocol: ${signal.protocol}${signal.pulseLen ? ` | Pulse: ${signal.pulseLen}` : ''}
+                        </div>
+                    </div>
+                    <div class="saved-item-actions">
+                        <button class="btn btn-success" onclick="sendServerRFSignal('${signal.name}')">
+                            📤 Send
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteServerRFSignal('${signal.name}')">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function sendServerRFSignal(name) {
+            if (!config.token) {
+                showAlert('rf-saved', '❌ Not authenticated. Please connect to device first.', 'error');
+                return;
+            }
+
+            try {
+                await apiRequest('/api/rf/send/name', {
+                    method: 'POST',
+                    body: JSON.stringify({ name: name })
+                });
+                showAlert('rf-saved', `✅ RF signal "${name}" sent successfully!`, 'success');
+            } catch (error) {
+                showAlert('rf-saved', '❌ Failed to send: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteServerRFSignal(name) {
+            if (!config.token) {
+                showAlert('rf-saved', '❌ Not authenticated. Please connect to device first.', 'error');
+                return;
+            }
+
+            if (!confirm(`Delete RF signal "${name}"?`)) return;
+
+            try {
+                await apiRequest('/api/rf/delete', {
+                    method: 'DELETE',
+                    body: JSON.stringify({ name: name })
+                });
+                showAlert('rf-saved', '✅ Signal deleted successfully!', 'success');
+                loadSavedRFSignals();
+            } catch (error) {
+                showAlert('rf-saved', '❌ Failed to delete: ' + error.message, 'error');
+            }
+        }
+
+        async function getDeviceSettings() {
+            try {
+                const data = await apiRequest('/api/hostname');
+                document.getElementById('hostname').value = data.hostname || '';
+                document.getElementById('instanceName').value = data.instance || '';
+                showAlert('settings', 'Settings loaded', 'success');
+            } catch (error) {
+                showAlert('settings', 'Failed to load: ' + error.message, 'error');
+            }
+        }
+
+        async function saveHostname() {
+            const hostname = document.getElementById('hostname').value.trim();
+            const instance = document.getElementById('instanceName').value.trim();
+
+            if (!hostname) {
+                showAlert('settings', 'Hostname is required', 'error');
+                return;
+            }
+
+            try {
+                await apiRequest('/api/hostname', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        hostname: hostname,
+                        instance: instance
+                    })
+                });
+
+                showAlert('settings', 'Settings saved! Device will restart...', 'success');
+            } catch (error) {
+                showAlert('settings', 'Failed to save: ' + error.message, 'error');
+            }
+        }
+
+        async function getWiFiStatus() {
+            try {
+                const status = await apiRequest('/api/wifi/status');
+                document.getElementById('wifiStatusData').textContent = JSON.stringify(status, null, 2);
+                document.getElementById('wifiStatusDisplay').classList.remove('hidden');
+                showAlert('settings', 'WiFi status retrieved', 'success');
+            } catch (error) {
+                showAlert('settings', 'Failed: ' + error.message, 'error');
+            }
+        }
+
+        async function factoryReset() {
+            if (!confirm('⚠️ WARNING: This will erase ALL settings!\n\nContinue?')) {
+                return;
+            }
+
+            if (!confirm('This action cannot be undone. Click OK to proceed.')) {
+                return;
+            }
+
+            try {
+                await apiRequest('/api/wifi/forget', { method: 'POST' });
+                localStorage.clear();
+                showAlert('settings', 'Factory reset complete! Device restarting...', 'success');
+                setTimeout(() => location.reload(), 3000);
+            } catch (error) {
+                showAlert('settings', 'Failed: ' + error.message, 'error');
+            }
+        }
+
+        function replaceToken() {
+            const newToken = document.getElementById('newToken').value.trim();
+            if (!newToken) {
+                showAlert('settings', 'Please enter a token', 'error');
+                return;
+            }
+
+            config.token = newToken;
+            saveConfig();
+            document.getElementById('currentTokenDisplay').textContent = newToken;
+            document.getElementById('authToken').value = newToken;
+            showAlert('settings', 'Token updated successfully!', 'success');
+        }
+
+        function copyToken() {
+            if (!config.token) {
+                showAlert('settings', 'No token to copy', 'error');
+                return;
+            }
+
+            navigator.clipboard.writeText(config.token).then(() => {
+                showAlert('settings', 'Token copied to clipboard!', 'success');
+            }).catch(() => {
+                showAlert('settings', 'Failed to copy token', 'error');
+            });
+        }
+
+        async function getOTAStatus() {
+            try {
+                const data = await apiRequest('/api/ota/status');
+                document.getElementById('otaStatusData').textContent = JSON.stringify(data, null, 2);
+                document.getElementById('otaStatusDisplay').classList.remove('hidden');
+                showAlert('ota', 'OTA status retrieved', 'success');
+            } catch (error) {
+                showAlert('ota', 'Failed: ' + error.message, 'error');
+            }
+        }
+
+        async function checkForUpdates() {
+            try {
+                const data = await apiRequest('/api/ota/check', { method: 'POST' });
+                document.getElementById('otaStatusData').textContent = JSON.stringify(data, null, 2);
+                document.getElementById('otaStatusDisplay').classList.remove('hidden');
+                
+                if (data.update_available) {
+                    showAlert('ota', 'Update available!', 'success');
+                } else {
+                    showAlert('ota', 'Device is up to date', 'info');
+                }
+            } catch (error) {
+                showAlert('ota', 'Failed to check: ' + error.message, 'error');
+            }
+        }
+
+        window.onload = function() {
+            loadConfig();
+            updateRFCodesList();
+            console.log('Haptique ESP32 Gateway UI loaded');
+        };
+
+        window.onbeforeunload = function() {
+            if (rfMonitoringInterval) {
+                clearInterval(rfMonitoringInterval);
+            }
+            if (newRfMonitoringInterval) {
+                clearInterval(newRfMonitoringInterval);
+            }
+        };
+    </script>
+</body>
+</html>
