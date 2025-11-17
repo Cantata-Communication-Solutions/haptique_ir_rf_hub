@@ -1,6 +1,8 @@
 """Haptique IR/RF hub integration for Home Assistant."""
 import logging
 import asyncio
+import os
+import shutil
 from datetime import timedelta
 from typing import Any
 
@@ -18,23 +20,64 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [Platform.BUTTON, Platform.SENSOR, Platform.SWITCH]
 
+
+async def async_register_static_files(hass: HomeAssistant):
+    """
+    Copy files from integration /www folder into /config/www/community/haptique_ir_rf_hub
+    and register static path /haptique_ir_rf_hub/*
+    """
+
+   
+    integration_path = hass.config.path("custom_components", DOMAIN)
+
+    src_www = os.path.join(integration_path, "..", "..", "www")
+    src_www = os.path.abspath(src_www)
+
+    if not os.path.isdir(src_www):
+        _LOGGER.warning("No /www folder found inside integration")
+        return
+
+    
+    dest = hass.config.path(f"www/community/{DOMAIN}")
+    os.makedirs(dest, exist_ok=True)
+
+  
+    for filename in os.listdir(src_www):
+        src_file = os.path.join(src_www, filename)
+        dest_file = os.path.join(dest, filename)
+
+        if os.path.isfile(src_file):
+            shutil.copy(src_file, dest_file)
+            _LOGGER.info("Copied %s → %s", src_file, dest_file)
+
+ 
+    hass.http.register_static_path(
+        f"/{DOMAIN}",
+        dest,
+        cache_headers=True
+    )
+
+    _LOGGER.info("Static path registered: http://YOUR_HA_IP:8123/%s/", DOMAIN)
+
+
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Haptique IR/RF hub from a config entry."""
     host = entry.data[CONF_HOST]
     token = entry.data.get(CONF_TOKEN, "")
     
-    # Create API client
+  
     session = async_get_clientsession(hass)
     api = HaptiqueGatewayAPI(host, token, session)
     
-    # Test connection
     try:
         await api.get_status()
     except Exception as err:
         _LOGGER.error("Failed to connect to  Haptique IR/RF hub: %s", err)
         return False
     
-    # Create coordinator for updates
+   
     coordinator = HaptiqueDataUpdateCoordinator(hass, api)
     await coordinator.async_config_entry_first_refresh()
     
@@ -44,13 +87,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "coordinator": coordinator,
     }
     
-    # Forward entry setup to platforms
+   
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     
-    # Register services
+  
     await async_setup_services(hass, api)
-    
+
+
+
+    await async_register_static_files(hass)
+
     return True
+
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -61,6 +109,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN].pop(entry.entry_id)
     
     return unload_ok
+
 
 
 async def async_setup_services(hass: HomeAssistant, api) -> None:
@@ -125,6 +174,7 @@ async def async_setup_services(hass: HomeAssistant, api) -> None:
     hass.services.async_register(DOMAIN, "delete_ir_command", delete_ir_command)
 
 
+
 class HaptiqueDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching Haptique IR/RF hub data."""
 
@@ -155,6 +205,7 @@ class HaptiqueDataUpdateCoordinator(DataUpdateCoordinator):
                 }
         except Exception as err:
             raise UpdateFailed(f"Error communicating with device: {err}")
+
 
 
 class HaptiqueGatewayAPI:
@@ -254,7 +305,7 @@ class HaptiqueGatewayAPI:
                 "name": name,
                 "frame": frame
             }
-    )
+        )
 
     
     async def delete_rf_command(self, name: str) -> dict:
