@@ -79,9 +79,9 @@ Before adding the integration to Home Assistant, ensure your Haptique IR/RF Hub 
 Use the link below to open the local learning interface, where you can learn and test IR/RF commands using a simple UI.
 Any command you save here will also appear in Home Assistant as an entity.
 
- ```
-   http://http://homeassistant.local:8123/haptique_ir_rf_hub/hub.html
- ```
+ 
+  [http://homeassistant.local:8123/haptique_ir_rf_hub/hub.html](http://homeassistant.local:8123/haptique_ir_rf_hub/hub.html)
+ 
 
 ### Setup Learning Interface
 
