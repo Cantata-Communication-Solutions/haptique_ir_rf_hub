@@ -23,25 +23,29 @@ PLATFORMS = [Platform.BUTTON, Platform.SENSOR, Platform.SWITCH]
 
 async def async_register_static_files(hass: HomeAssistant):
     """
-    Copy files from integration /www folder into /config/www/community/haptique_ir_rf_hub
-    and register static path /haptique_ir_rf_hub/*
+    Copy files from:
+        custom_components/haptique_ir_rf_hub/www/
+    Into:
+        /config/www/community/haptique_ir_rf_hub/
+    And register static path:
+        http://<ha>/haptique_ir_rf_hub/<file>
     """
 
-   
+    # Correct integration path
     integration_path = hass.config.path("custom_components", DOMAIN)
 
-    src_www = os.path.join(integration_path, "..", "..", "www")
-    src_www = os.path.abspath(src_www)
+    # Correct source www directory INSIDE integration
+    src_www = os.path.join(integration_path, "www")
 
     if not os.path.isdir(src_www):
-        _LOGGER.warning("No /www folder found inside integration")
+        _LOGGER.error("No www folder found inside integration! (%s)", src_www)
         return
 
-    
+    # Destination inside HA www folder (HACS standard)
     dest = hass.config.path(f"www/community/{DOMAIN}")
     os.makedirs(dest, exist_ok=True)
 
-  
+    # Copy each file
     for filename in os.listdir(src_www):
         src_file = os.path.join(src_www, filename)
         dest_file = os.path.join(dest, filename)
@@ -50,14 +54,15 @@ async def async_register_static_files(hass: HomeAssistant):
             shutil.copy(src_file, dest_file)
             _LOGGER.info("Copied %s → %s", src_file, dest_file)
 
- 
+    # Register static URL path
     hass.http.register_static_path(
         f"/{DOMAIN}",
         dest,
-        cache_headers=True
+        cache_headers=False
     )
 
-    _LOGGER.info("Static path registered: http://YOUR_HA_IP:8123/%s/", DOMAIN)
+    _LOGGER.info("Static files served at: /%s/", DOMAIN)
+
 
 
 
