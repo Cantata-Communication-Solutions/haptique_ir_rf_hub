@@ -55,11 +55,16 @@ async def async_register_static_files(hass: HomeAssistant):
             _LOGGER.info("Copied %s → %s", src_file, dest_file)
 
     # Register static URL path
-    hass.http.register_static_path(
-        f"/{DOMAIN}",
-        dest,
-        cache_headers=False
-    )
+    from homeassistant.components.http import StaticPathConfig
+
+    await hass.http.async_register_static_paths([
+        StaticPathConfig(
+            f"/{DOMAIN}",
+            dest,
+            False   # cache_headers
+        )
+    ])
+
 
     _LOGGER.info("Static files served at: /%s/", DOMAIN)
 
